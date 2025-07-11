@@ -1,0 +1,58 @@
+{
+  "name": "@camu-ai/sped-nfe",
+  "description": "Camu Sped NF-e",
+  "version": "0.0.1",
+  "dependencies": {
+    "@standard-schema/spec": "^1.0.0"
+  },
+  "devDependencies": {
+    "@vitest/coverage-istanbul": "^3.0.9"
+  },
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/esm/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.cts",
+        "default": "./dist/cjs/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "main": "dist/cjs/index.cjs",
+  "module": "dist/esm/index.js",
+  "packageManager": "pnpm@10.6.3",
+  "peerDependencies": {
+    "typescript": ">=4.7"
+  },
+  "author": "Camu",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/camu-ai/sped.git",
+    "directory": "packages/sped-nfe"
+  },
+  "homepage": "https://sped.camu.com.br/docs/sped-nfe",
+  "keywords": [
+    "sped",
+    "nfe",
+    "distribuicao",
+    "fiscal",
+    "camu"
+  ],
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "lint": "eslint . --fix",
+    "test": "npx vitest --run"
+  },
+  "sideEffects": false,
+  "type": "module",
+  "types": "dist/esm/index.d.ts"
+}

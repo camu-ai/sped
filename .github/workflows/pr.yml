@@ -1,0 +1,74 @@
+name: PR
+
+on:
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0
+      - name: Setup Tools
+        uses: tanstack/config/.github/setup@main
+      - name: Get base and head commits for `nx affected`
+        uses: nrwl/nx-set-shas@v4.3.0
+        with:
+          main-branch-name: main
+      - name: Run Checks
+        run: pnpm run lint && pnpm run build && pnpm run test
+  preview:
+    name: Preview
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0
+      - name: Setup Tools
+        uses: tanstack/config/.github/setup@main
+      - name: Build Packages
+        run: pnpm run build
+      - name: Publish Previews
+        run: pnpx pkg-pr-new publish --pnpm './packages/*'
+      - name: Compressed Size Action - sped-nfe Package
+        uses: preactjs/compressed-size-action@v2
+        with:
+          repo-token: "${{ secrets.GITHUB_TOKEN }}"
+          pattern: "./packages/sped-nfe/dist/**/*.{js,mjs,cjs}"
+          comment-key: "sped-nfe-package-size"
+          # build-script: "build"
+          # install-script: "pnpm install --frozen-lockfile"
+          # Any JS files anywhere within a dist directory:
+          # pattern: "**/dist/**/*.{js,mjs,cjs}"
+          # # Always ignore SourceMaps and node_modules:
+          # exclude: "{**/*.map,**/node_modules/**}"
+          # exclude: "{**/*.map,**/node_modules/**}"
+  # build-example:
+  #   name: Build Example Site
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v4.2.2
+  #     - name: Setup Tools
+  #       uses: tanstack/config/.github/setup@main
+  #     - name: Build Packages
+  #       run: pnpm run build
+  #     - name: Build Example Site
+  #       run: |
+  #         cd examples/react/todo
+  #         pnpm build
