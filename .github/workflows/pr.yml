@@ -48,6 +48,8 @@ jobs:
       - name: Compressed Size Action - sped-nfe Package
         uses: preactjs/compressed-size-action@v2
         with:
+          build-script: "pnpm run build"
+          install-script: "pnpm install"
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
           pattern: "./packages/sped-nfe/dist/**/*.{js,mjs,cjs}"
           exclude: "{**/*.map,**/node_modules/**}"
