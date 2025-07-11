@@ -1,7 +1,7 @@
 {
   "name": "@camu-ai/sped-nfe",
   "description": "Camu Sped NF-e",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "dependencies": {
     "@standard-schema/spec": "^1.0.0"
   },
