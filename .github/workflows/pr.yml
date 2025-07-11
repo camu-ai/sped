@@ -48,16 +48,16 @@ jobs:
       - name: Compressed Size Action - sped-nfe Package
         uses: preactjs/compressed-size-action@v2
         with:
-          build-script: "build"
-          install-script: "pnpm install --frozen-lockfile"
-        #   repo-token: "${{ secrets.GITHUB_TOKEN }}"
-        #   pattern: "./packages/sped-nfe/dist/**/*.{js,mjs,cjs}"
-        # Any JS files anywhere within a dist directory:
-        # pattern: "**/dist/**/*.{js,mjs,cjs}"
-        # # Always ignore SourceMaps and node_modules:
-        # exclude: "{**/*.map,**/node_modules/**}"
-        #   exclude: "{**/*.map,**/node_modules/**}"
-        #   comment-key: "sped-nfe-package-size"
+          repo-token: "${{ secrets.GITHUB_TOKEN }}"
+          pattern: "./packages/sped-nfe/dist/**/*.{js,mjs,cjs}"
+          comment-key: "sped-nfe-package-size"
+          # build-script: "build"
+          # install-script: "pnpm install --frozen-lockfile"
+          # Any JS files anywhere within a dist directory:
+          # pattern: "**/dist/**/*.{js,mjs,cjs}"
+          # # Always ignore SourceMaps and node_modules:
+          # exclude: "{**/*.map,**/node_modules/**}"
+          # exclude: "{**/*.map,**/node_modules/**}"
   # build-example:
   #   name: Build Example Site
   #   runs-on: ubuntu-latest
