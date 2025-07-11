@@ -50,10 +50,14 @@ jobs:
         with:
           build-script: "pnpm run build"
           install-script: "pnpm install"
-          repo-token: "${{ secrets.GITHUB_TOKEN }}"
-          pattern: "./packages/sped-nfe/dist/**/*.{js,mjs,cjs}"
-          exclude: "{**/*.map,**/node_modules/**}"
-          comment-key: "sped-nfe-package-size"
+        #   repo-token: "${{ secrets.GITHUB_TOKEN }}"
+        #   pattern: "./packages/sped-nfe/dist/**/*.{js,mjs,cjs}"
+        # Any JS files anywhere within a dist directory:
+        # pattern: "**/dist/**/*.{js,mjs,cjs}"
+        # # Always ignore SourceMaps and node_modules:
+        # exclude: "{**/*.map,**/node_modules/**}"
+        #   exclude: "{**/*.map,**/node_modules/**}"
+        #   comment-key: "sped-nfe-package-size"
   # build-example:
   #   name: Build Example Site
   #   runs-on: ubuntu-latest
