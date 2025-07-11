@@ -45,11 +45,12 @@ jobs:
         run: pnpm run build
       - name: Publish Previews
         run: pnpx pkg-pr-new publish --pnpm './packages/*'
-      - name: Compressed Size Action - SPED NF-e Package
+      - name: Compressed Size Action - sped-nfe Package
         uses: preactjs/compressed-size-action@v2
         with:
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
           pattern: "./packages/sped-nfe/dist/**/*.{js,mjs,cjs}"
+          exclude: "{**/*.map,**/node_modules/**}"
           comment-key: "sped-nfe-package-size"
   # build-example:
   #   name: Build Example Site
