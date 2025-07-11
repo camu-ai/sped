@@ -35,7 +35,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/camu-ai/sped.git",
+    "url": "git+https://github.com/camu-ai/sped.git",
     "directory": "packages/sped-nfe"
   },
   "homepage": "https://sped.camu.com.br/docs/sped-nfe",
