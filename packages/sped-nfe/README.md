@@ -27,24 +27,29 @@ pnpm add @camu-ai/sped-nfe
 ## Início Rápido
 
 ```typescript
-import { nfeConsultaUltNSU, nfeEnviarEvento, UFCode, Ambiente } from '@camu-ai/sped-nfe'
-import { readFileSync } from 'fs'
+import {
+  nfeConsultaUltNSU,
+  nfeEnviarEvento,
+  UFCode,
+  Ambiente,
+} from "@camu-ai/sped-nfe"
+import { readFileSync } from "fs"
 
 // Carregue seu certificado
-const pfx = readFileSync('./certificado.pfx')
+const pfx = readFileSync("./certificado.pfx")
 
 const config = {
   cUFAutor: UFCode.PR, // Paraná
-  cnpj: '12345678901234',
+  cnpj: "12345678901234",
   tpAmb: Ambiente.HOMOLOGACAO, // Homologação
   pfx,
-  passphrase: 'senha-do-certificado'
+  passphrase: "senha-do-certificado",
 }
 
 // Consultar novos documentos
 const resultado = await nfeConsultaUltNSU({
   config,
-  ultNSU: '000000000000001'
+  ultNSU: "000000000000001",
 })
 
 console.log(resultado.data)
@@ -57,46 +62,48 @@ console.log(resultado.data)
 A biblioteca suporta dois tipos de autenticação por certificado:
 
 #### Opção 1: Certificado PFX
+
 ```typescript
-import { UFCode, Ambiente } from '@camu-ai/sped-nfe'
+import { UFCode, Ambiente } from "@camu-ai/sped-nfe"
 
 const config = {
   cUFAutor: UFCode.PR,
-  cnpj: '12345678901234',
+  cnpj: "12345678901234",
   tpAmb: Ambiente.HOMOLOGACAO,
   pfx: Buffer.from(conteudoArquivoPfx),
-  passphrase: 'senha-do-seu-certificado'
+  passphrase: "senha-do-seu-certificado",
 }
 ```
 
 #### Opção 2: Arquivos Separados de Certificado e Chave
+
 ```typescript
-import { UFCode, Ambiente } from '@camu-ai/sped-nfe'
+import { UFCode, Ambiente } from "@camu-ai/sped-nfe"
 
 const config = {
   cUFAutor: UFCode.PR,
-  cnpj: '12345678901234', 
+  cnpj: "12345678901234",
   tpAmb: Ambiente.HOMOLOGACAO,
-  cert: 'conteudo-do-certificado-string',
-  key: 'conteudo-da-chave-privada-string'
+  cert: "conteudo-do-certificado-string",
+  key: "conteudo-da-chave-privada-string",
 }
 ```
 
 ### Parâmetros de Configuração
 
-| Parâmetro | Tipo | Obrigatório | Descrição |
-|-----------|------|-------------|-----------|
-| `cUFAutor` | UFCode \| string | Sim | Código do estado onde a empresa está autorizada |
-| `cnpj` | string | Sim* | CNPJ da empresa (14 dígitos) |
-| `cpf` | string | Sim* | CPF da pessoa física (11 dígitos) |
-| `tpAmb` | Ambiente \| '1' \| '2' | Sim | Ambiente: Producao/1 ou Homologacao/2 |
-| `pfx` | Buffer | Sim** | Conteúdo do arquivo de certificado PFX |
-| `passphrase` | string | Sim** | Senha do certificado PFX |
-| `cert` | string | Sim** | Conteúdo do certificado (alternativa ao PFX) |
-| `key` | string | Sim** | Conteúdo da chave privada (alternativa ao PFX) |
+| Parâmetro    | Tipo                   | Obrigatório | Descrição                                       |
+| ------------ | ---------------------- | ----------- | ----------------------------------------------- |
+| `cUFAutor`   | UFCode \| string       | Sim         | Código do estado onde a empresa está autorizada |
+| `cnpj`       | string                 | Sim\*       | CNPJ da empresa (14 dígitos)                    |
+| `cpf`        | string                 | Sim\*       | CPF da pessoa física (11 dígitos)               |
+| `tpAmb`      | Ambiente \| '1' \| '2' | Sim         | Ambiente: Producao/1 ou Homologacao/2           |
+| `pfx`        | Buffer                 | Sim\*\*     | Conteúdo do arquivo de certificado PFX          |
+| `passphrase` | string                 | Sim\*\*     | Senha do certificado PFX                        |
+| `cert`       | string                 | Sim\*\*     | Conteúdo do certificado (alternativa ao PFX)    |
+| `key`        | string                 | Sim\*\*     | Conteúdo da chave privada (alternativa ao PFX)  |
 
-*Deve ser fornecido `cnpj` ou `cpf`, mas não ambos.
-**Deve ser fornecido `pfx` + `passphrase` ou `cert` + `key`.
+\*Deve ser fornecido `cnpj` ou `cpf`, mas não ambos.
+\*\*Deve ser fornecido `pfx` + `passphrase` ou `cert` + `key`.
 
 ## Referência da API
 
@@ -107,24 +114,26 @@ const config = {
 Consulta documentos baseado no último NSU (Número Sequencial Único).
 
 ```typescript
-import { nfeConsultaUltNSU } from '@camu-ai/sped-nfe'
+import { nfeConsultaUltNSU } from "@camu-ai/sped-nfe"
 
 const resultado = await nfeConsultaUltNSU({
   config: configDistribuicao,
-  ultNSU: '000000000000001'
+  ultNSU: "000000000000001",
 })
 ```
 
 **Parâmetros:**
+
 - `config`: Objeto de configuração de distribuição
 - `ultNSU`: Último NSU conhecido (15 dígitos)
 
 **Exemplo de Retorno:**
+
 ```typescript
 {
   data: {
     tpAmb: "2",
-    verAplic: "1.5.11", 
+    verAplic: "1.5.11",
     cStat: "138",
     xMotivo: "Documento(s) localizado(s)",
     dhResp: "2022-06-21T10:48:14-03:00",
@@ -138,7 +147,7 @@ const resultado = await nfeConsultaUltNSU({
     }]
   },
   reqXml: "<!-- XML da requisição SOAP -->",
-  resXml: "<!-- XML da resposta SOAP -->", 
+  resXml: "<!-- XML da resposta SOAP -->",
   status: 200
 }
 ```
@@ -148,15 +157,16 @@ const resultado = await nfeConsultaUltNSU({
 Consulta um documento específico por NSU.
 
 ```typescript
-import { nfeConsultaNSU } from '@camu-ai/sped-nfe'
+import { nfeConsultaNSU } from "@camu-ai/sped-nfe"
 
 const resultado = await nfeConsultaNSU({
   config: configDistribuicao,
-  NSU: '000000000000045'
+  NSU: "000000000000045",
 })
 ```
 
 **Parâmetros:**
+
 - `config`: Objeto de configuração de distribuição
 - `NSU`: NSU específico para consulta (15 dígitos)
 
@@ -165,15 +175,16 @@ const resultado = await nfeConsultaNSU({
 Consulta um documento específico pela chave de acesso da NFe.
 
 ```typescript
-import { nfeConsultaChNFe } from '@camu-ai/sped-nfe'
+import { nfeConsultaChNFe } from "@camu-ai/sped-nfe"
 
 const resultado = await nfeConsultaChNFe({
   config: configDistribuicao,
-  chNFe: '41000000000000000000000000000000000000000039'
+  chNFe: "41000000000000000000000000000000000000000039",
 })
 ```
 
 **Parâmetros:**
+
 - `config`: Objeto de configuração de distribuição
 - `chNFe`: Chave de acesso da NFe (44 dígitos)
 
@@ -184,30 +195,35 @@ const resultado = await nfeConsultaChNFe({
 Envia eventos de manifestação do destinatário para documentos NFe.
 
 ```typescript
-import { nfeEnviarEvento, TipoEvento } from '@camu-ai/sped-nfe'
+import { nfeEnviarEvento, TipoEvento } from "@camu-ai/sped-nfe"
 
 const resultado = await nfeEnviarEvento({
   config: configEvento,
-  idLote: '1',
-  lote: [{
-    chNFe: '41000000000000000000000000000000000000000039',
-    tpEvento: TipoEvento.CONFIRMACAO_OPERACAO
-  }]
+  idLote: "1",
+  lote: [
+    {
+      chNFe: "41000000000000000000000000000000000000000039",
+      tpEvento: TipoEvento.CONFIRMACAO_OPERACAO,
+    },
+  ],
 })
 ```
 
 **Parâmetros:**
+
 - `config`: Objeto de configuração de evento
 - `idLote`: Identificador do lote (string)
 - `lote`: Array de eventos para enviar
 
 **Tipos de Evento:**
+
 - `TipoEvento.CONFIRMACAO_OPERACAO` (210200): Confirmação da Operação
 - `TipoEvento.CIENCIA_OPERACAO` (210210): Ciência da Operação
 - `TipoEvento.DESCONHECIMENTO_OPERACAO` (210220): Desconhecimento da Operação
 - `TipoEvento.OPERACAO_NAO_REALIZADA` (210240): Operação não Realizada
 
 **Exemplo de Retorno:**
+
 ```typescript
 {
   data: {
@@ -215,7 +231,7 @@ const resultado = await nfeEnviarEvento({
     tpAmb: "2",
     verAplic: "AN_1.4.3",
     cOrgao: "91",
-    cStat: "128", 
+    cStat: "128",
     xMotivo: "Lote de evento processado",
     infEvento: [{
       tpAmb: "2",
@@ -245,15 +261,15 @@ const resultado = await nfeEnviarEvento({
 Todas as funções retornam um objeto de resposta que pode conter `data` ou `error`:
 
 ```typescript
-const resultado = await nfeConsultaUltNSU({ config, ultNSU: '000000000000001' })
+const resultado = await nfeConsultaUltNSU({ config, ultNSU: "000000000000001" })
 
 if (resultado.error) {
-  console.error('Requisição falhou:', resultado.error)
-  console.log('XML da Requisição:', resultado.reqXml)
-  console.log('XML da Resposta:', resultado.resXml)
-  console.log('Status HTTP:', resultado.status)
+  console.error("Requisição falhou:", resultado.error)
+  console.log("XML da Requisição:", resultado.reqXml)
+  console.log("XML da Resposta:", resultado.resXml)
+  console.log("Status HTTP:", resultado.status)
 } else {
-  console.log('Sucesso:', resultado.data)
+  console.log("Sucesso:", resultado.data)
 }
 ```
 
@@ -261,16 +277,16 @@ if (resultado.error) {
 
 ```typescript
 const configComCpf = {
-  cUFAutor: '41',
-  cpf: '12345678901', // Use CPF ao invés de CNPJ
-  tpAmb: '2',
+  cUFAutor: "41",
+  cpf: "12345678901", // Use CPF ao invés de CNPJ
+  tpAmb: "2",
   pfx: bufferCertificado,
-  passphrase: 'senha'
+  passphrase: "senha",
 }
 
 const resultado = await nfeConsultaUltNSU({
   config: configComCpf,
-  ultNSU: '000000000000001'
+  ultNSU: "000000000000001",
 })
 ```
 
@@ -281,12 +297,14 @@ Para eventos que requerem justificativa (como "Operação não Realizada"):
 ```typescript
 const resultado = await nfeEnviarEvento({
   config: configEvento,
-  idLote: '1',
-  lote: [{
-    chNFe: '41000000000000000000000000000000000000000039',
-    tpEvento: TipoEvento.OPERACAO_NAO_REALIZADA,
-    justificativa: 'Produto não foi entregue no prazo acordado'
-  }]
+  idLote: "1",
+  lote: [
+    {
+      chNFe: "41000000000000000000000000000000000000000039",
+      tpEvento: TipoEvento.OPERACAO_NAO_REALIZADA,
+      justificativa: "Produto não foi entregue no prazo acordado",
+    },
+  ],
 })
 ```
 
@@ -296,7 +314,7 @@ const resultado = await nfeEnviarEvento({
 // Obter múltiplos documentos
 const resultado = await nfeConsultaUltNSU({
   config,
-  ultNSU: '000000000000001'
+  ultNSU: "000000000000001",
 })
 
 if (resultado.data?.docZip) {
@@ -312,24 +330,26 @@ if (resultado.data?.docZip) {
 ## Configuração de Ambiente
 
 ### Ambiente de Produção
+
 ```typescript
 const configProd = {
-  cUFAutor: '41',
-  cnpj: '12345678901234',
-  tpAmb: '1', // Produção
+  cUFAutor: "41",
+  cnpj: "12345678901234",
+  tpAmb: "1", // Produção
   pfx: certificadoProducao,
-  passphrase: 'senha-prod'
+  passphrase: "senha-prod",
 }
 ```
 
 ### Ambiente de Homologação
+
 ```typescript
 const configHom = {
-  cUFAutor: '41', 
-  cnpj: '12345678901234',
-  tpAmb: '2', // Homologação
+  cUFAutor: "41",
+  cnpj: "12345678901234",
+  tpAmb: "2", // Homologação
   pfx: certificadoHomologacao,
-  passphrase: 'senha-hom'
+  passphrase: "senha-hom",
 }
 ```
 
@@ -338,7 +358,7 @@ const configHom = {
 Você pode usar o enum `UFCode` ou os códigos diretos:
 
 ```typescript
-import { UFCode } from '@camu-ai/sped-nfe'
+import { UFCode } from "@camu-ai/sped-nfe"
 
 // Usando enum (recomendado)
 const config = {
@@ -348,14 +368,15 @@ const config = {
 
 // Ou usando código direto
 const config2 = {
-  cUFAutor: '35', // São Paulo
+  cUFAutor: "35", // São Paulo
   // ... outras configurações
 }
 ```
 
 **Estados disponíveis:**
+
 - `UFCode.RO` ('11'): Rondônia
-- `UFCode.AC` ('12'): Acre  
+- `UFCode.AC` ('12'): Acre
 - `UFCode.AM` ('13'): Amazonas
 - `UFCode.RR` ('14'): Roraima
 - `UFCode.PA` ('15'): Pará
@@ -387,7 +408,7 @@ const config2 = {
 Esta biblioteca é escrita em TypeScript e fornece type safety completo:
 
 ```typescript
-import { 
+import {
   UFCode,
   Ambiente,
   TipoEvento,
@@ -395,28 +416,28 @@ import {
   type NFeRecepcaoEventoConfig,
   type DistribuicaoResponse,
   type EventoResponse,
-  type EventoLote
-} from '@camu-ai/sped-nfe'
+  type EventoLote,
+} from "@camu-ai/sped-nfe"
 
 // Todos os parâmetros e tipos de retorno são tipados
 const config: NFeDistribuicaoConfig = {
   cUFAutor: UFCode.PR,
-  cnpj: '12345678901234',
+  cnpj: "12345678901234",
   tpAmb: Ambiente.HOMOLOGACAO,
   pfx: bufferCertificado,
-  passphrase: 'senha'
+  passphrase: "senha",
 }
 
 // Exemplo de evento tipado
 const evento: EventoLote = {
-  chNFe: '41000000000000000000000000000000000000000039',
-  tpEvento: TipoEvento.CIENCIA_OPERACAO
+  chNFe: "41000000000000000000000000000000000000000039",
+  tpEvento: TipoEvento.CIENCIA_OPERACAO,
 }
 ```
 
 ## Requisitos
 
-- Node.js 16+ 
+- Node.js 16+
 - TypeScript 4.7+ (para projetos TypeScript)
 - Certificado digital válido emitido por uma Autoridade Certificadora brasileira
 - CNPJ ou CPF registrado na Sefaz
@@ -426,35 +447,35 @@ const evento: EventoLote = {
 ### Consulta Completa de Distribuição
 
 ```typescript
-import { nfeConsultaUltNSU } from '@camu-ai/sped-nfe'
-import { readFileSync } from 'fs'
+import { nfeConsultaUltNSU } from "@camu-ai/sped-nfe"
+import { readFileSync } from "fs"
 
 async function consultarDocumentos() {
-  const certificado = readFileSync('./certificado.pfx')
-  
+  const certificado = readFileSync("./certificado.pfx")
+
   const config = {
-    cUFAutor: '35', // São Paulo
-    cnpj: '12345678000195',
-    tpAmb: '2', // Homologação
+    cUFAutor: "35", // São Paulo
+    cnpj: "12345678000195",
+    tpAmb: "2", // Homologação
     pfx: certificado,
-    passphrase: 'minha-senha'
+    passphrase: "minha-senha",
   }
 
   try {
     const resultado = await nfeConsultaUltNSU({
       config,
-      ultNSU: '000000000000001'
+      ultNSU: "000000000000001",
     })
 
     if (resultado.data) {
-      console.log('Status:', resultado.data.cStat)
-      console.log('Motivo:', resultado.data.xMotivo)
-      console.log('Último NSU:', resultado.data.ultNSU)
-      console.log('Máximo NSU:', resultado.data.maxNSU)
-      
+      console.log("Status:", resultado.data.cStat)
+      console.log("Motivo:", resultado.data.xMotivo)
+      console.log("Último NSU:", resultado.data.ultNSU)
+      console.log("Máximo NSU:", resultado.data.maxNSU)
+
       if (resultado.data.docZip) {
         console.log(`Encontrados ${resultado.data.docZip.length} documentos`)
-        
+
         resultado.data.docZip.forEach((doc, index) => {
           console.log(`Documento ${index + 1}:`)
           console.log(`  NSU: ${doc.nsu}`)
@@ -464,7 +485,7 @@ async function consultarDocumentos() {
       }
     }
   } catch (error) {
-    console.error('Erro na consulta:', error)
+    console.error("Erro na consulta:", error)
   }
 }
 
@@ -474,32 +495,34 @@ consultarDocumentos()
 ### Manifestação do Destinatário
 
 ```typescript
-import { nfeEnviarEvento } from '@camu-ai/sped-nfe'
+import { nfeEnviarEvento } from "@camu-ai/sped-nfe"
 
 async function manifestarCiencia() {
   const config = {
-    cUFAutor: '35',
-    cnpj: '12345678000195',
-    tpAmb: '2',
+    cUFAutor: "35",
+    cnpj: "12345678000195",
+    tpAmb: "2",
     pfx: certificado,
-    passphrase: 'senha'
+    passphrase: "senha",
   }
 
   const resultado = await nfeEnviarEvento({
     config,
     idLote: Date.now().toString(), // ID único do lote
-    lote: [{
-      chNFe: '35220314200166000187550010000000001123456789',
-      tpEvento: TipoEvento.CIENCIA_OPERACAO
-    }]
+    lote: [
+      {
+        chNFe: "35220314200166000187550010000000001123456789",
+        tpEvento: TipoEvento.CIENCIA_OPERACAO,
+      },
+    ],
   })
 
   if (resultado.data) {
-    console.log('Evento processado com sucesso!')
-    console.log('ID do Lote:', resultado.data.idLote)
-    console.log('Status:', resultado.data.cStat)
-    
-    resultado.data.infEvento?.forEach(evento => {
+    console.log("Evento processado com sucesso!")
+    console.log("ID do Lote:", resultado.data.idLote)
+    console.log("Status:", resultado.data.cStat)
+
+    resultado.data.infEvento?.forEach((evento) => {
       console.log(`Evento para NFe ${evento.chNFe}:`)
       console.log(`  Status: ${evento.cStat}`)
       console.log(`  Motivo: ${evento.xMotivo}`)
@@ -516,17 +539,20 @@ async function rejeitarOperacao() {
   const resultado = await nfeEnviarEvento({
     config,
     idLote: Date.now().toString(),
-    lote: [{
-      chNFe: '35220314200166000187550010000000001123456789',
-      tpEvento: TipoEvento.OPERACAO_NAO_REALIZADA,
-      justificativa: 'Mercadoria não foi entregue devido ao endereço incorreto'
-    }]
+    lote: [
+      {
+        chNFe: "35220314200166000187550010000000001123456789",
+        tpEvento: TipoEvento.OPERACAO_NAO_REALIZADA,
+        justificativa:
+          "Mercadoria não foi entregue devido ao endereço incorreto",
+      },
+    ],
   })
 
   if (resultado.error) {
-    console.error('Erro ao enviar evento:', resultado.error)
+    console.error("Erro ao enviar evento:", resultado.error)
   } else {
-    console.log('Operação rejeitada com sucesso!')
+    console.log("Operação rejeitada com sucesso!")
   }
 }
 ```
@@ -534,11 +560,13 @@ async function rejeitarOperacao() {
 ## Códigos de Status Comuns
 
 ### Distribuição DFe
+
 - `137`: Nenhum documento localizado
 - `138`: Documento(s) localizado(s)
 - `656`: Consulta com falha - Verificar conectividade
 
 ### Eventos
+
 - `128`: Lote de evento processado
 - `135`: Evento registrado e vinculado a NF-e
 - `573`: Duplicidade de evento
