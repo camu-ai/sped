@@ -1,0 +1,16 @@
+---
+description: "Exported functions use a single object parameter"
+globs:
+  - "**/*.{ts,tsx}"
+alwaysApply: true
+---
+
+## Object-Parameter Guideline
+
+Every exported function must have the form:
+
+```ts
+export const fn = async (inputs: { /* named fields */ }): Promise<Result> => { … }
+
+Positional parameters are forbidden except for trivial inline lambdas.
+Benefits: call-site clarity, safer refactors, and easy optional fields.
