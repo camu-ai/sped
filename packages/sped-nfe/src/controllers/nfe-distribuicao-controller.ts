@@ -19,11 +19,23 @@ export class NFeDistribuicao {
    * distribuição de DF-e estabelecido a partir do NSU informado disponibiliza
    * ao interessado uma sequência numerológica ordenada de forma crescente.
    *
-   * Retorna cStat 137 quando nenhum documento é localizado ou cStat 138
-   * quando documentos são encontrados.
+   * **REGRAS CRÍTICAS DE USO:**
+   * - **Aguardar 1 hora após cStat 137**: Quando não há mais documentos (cStat=137),
+   *   DEVE aguardar 1 hora antes de nova consulta
+   * - **Penalidade por uso indevido**: Consultas dentro de 1 hora após cStat=137
+   *   resultam em cStat=656 e bloqueio do CNPJ por 1 hora
+   * - **Ordem sequencial obrigatória**: Múltiplas aplicações para o mesmo CNPJ
+   *   devem seguir sequência numerológica crescente
+   * - **Máximo 50 documentos por consulta**: Resposta limitada a 50 documentos
+   * - **Disponibilidade 90 dias**: Documentos disponíveis por até 3 meses
+   *
+   * **Códigos de Status:**
+   * - 137: "Nenhum documento localizado" (aguardar 1 hora)
+   * - 138: "Documento(s) localizado(s)"
+   * - 656: "Rejeição: Consumo Indevido" (CNPJ bloqueado por 1 hora)
    *
    * @param inputs - Parâmetros da consulta
-   * @param inputs.ultNSU - Último NSU conhecido (15 dígitos)
+   * @param inputs.ultNSU - Último NSU conhecido (15 dígitos) - usar sempre o retornado pela consulta anterior
    * @returns Promise com a resposta da distribuição contendo os documentos encontrados
    */
   async consultaUltNSU(inputs: {
@@ -62,11 +74,29 @@ export class NFeDistribuicao {
    * de acesso de 44 dígitos. Útil quando se conhece a chave exata do documento
    * que se deseja obter.
    *
-   * Retorna cStat 137 quando o documento não é localizado ou cStat 138
-   * quando o documento é encontrado.
+   * **REGRAS CRÍTICAS DE USO:**
+   * - **Limite 20 consultas/hora**: Máximo 20 consultas por hora por CNPJ
+   * - **Bloqueio por excesso**: Exceder 20 consultas/hora resulta em cStat=656
+   *   e bloqueio do CNPJ por 1 hora
+   * - **Disponibilidade 90 dias**: Documentos disponíveis por até 3 meses
+   * - **Validação de permissão**: CNPJ/CPF deve ter permissão para consultar a NFe
+   * - **Emitente restrito**: NFe não disponível para seu próprio emitente
+   * - **Status válidos**: NFe canceladas ou denegadas são indisponíveis
+   *
+   * **Códigos de Status:**
+   * - 137: "Nenhum documento localizado"
+   * - 138: "Documento(s) localizado(s)"
+   * - 217: "NFe inexistente para a chave de acesso informada"
+   * - 236: "Chave de Acesso com dígito verificador inválido"
+   * - 632: "Solicitação fora de prazo, NFe não disponível para download"
+   * - 640: "CNPJ/CPF do interessado não possui permissão para consultar esta NFe"
+   * - 641: "NFe indisponível para o emitente"
+   * - 653: "NFe Cancelada, arquivo indisponível para download"
+   * - 654: "NFe Denegada, arquivo indisponível para download"
+   * - 656: "Consumo indevido - excedido o limite de 20 consultas por hora"
    *
    * @param inputs - Parâmetros da consulta
-   * @param inputs.chNFe - Chave de acesso da NFe (44 dígitos)
+   * @param inputs.chNFe - Chave de acesso da NFe (44 dígitos) - deve ser válida e existir no Ambiente Nacional
    * @returns Promise com a resposta da distribuição contendo o documento solicitado
    */
   async consultaChNFe(inputs: {
@@ -105,13 +135,29 @@ export class NFeDistribuicao {
    * como faltante em sua base de dados. Útil para recuperar documentos específicos
    * quando há lacunas na sequência de NSUs já baixados.
    *
-   * Importante: Para evitar uso indevido, as consultas devem seguir a sequência
+   * **REGRAS CRÍTICAS DE USO:**
+   * - **Limite 20 consultas/hora**: Máximo 20 consultas por hora por CNPJ
+   * - **Bloqueio por excesso**: Exceder 20 consultas/hora resulta em cStat=656
+   *   e bloqueio do CNPJ por 1 hora
+   * - **Ordem sequencial obrigatória**: Múltiplas aplicações para o mesmo CNPJ
+   *   devem seguir sequência numerológica crescente
+   * - **NSU válido**: NSU não pode exceder o máximo disponível no Ambiente Nacional
+   * - **Disponibilidade 90 dias**: Documentos disponíveis por até 3 meses
+   * - **Uso para lacunas**: Destinado principalmente para fechar lacunas identificadas
+   *
+   * **Códigos de Status:**
+   * - 137: "Nenhum documento localizado"
+   * - 138: "Documento(s) localizado(s)"
+   * - 589: "NSU informado superior ao maior NSU do Ambiente Nacional"
+   * - 656: "Consumo indevido - excedido o limite de 20 consultas por hora"
+   *
+   * **Importante**: Para evitar uso indevido, as consultas devem seguir a sequência
    * numerológica ordenada de forma crescente. Tentativas sucessivas de busca por
    * registros já disponibilizados podem ser rejeitadas com erro "656–Rejeição:
    * Consumo Indevido".
    *
    * @param inputs - Parâmetros da consulta
-   * @param inputs.NSU - NSU específico para consulta (15 dígitos)
+   * @param inputs.NSU - NSU específico para consulta (15 dígitos) - deve ser válido e não exceder o máximo disponível
    * @returns Promise com a resposta da distribuição contendo o documento do NSU solicitado
    */
   async consultaNSU(inputs: { NSU: string }): Promise<DistribuicaoResponse> {
