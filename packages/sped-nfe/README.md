@@ -567,6 +567,7 @@ Os web services da Sefaz possuem regras rígidas de uso para prevenir abuso e ga
 ### Distribuição DFe - Regras Gerais
 
 #### Disponibilidade de Documentos
+
 - **90 dias**: Documentos ficam disponíveis por até 3 meses após recepção
 - **50 documentos/consulta**: Máximo retornado por requisição
 - **Ordem sequencial**: NSUs devem ser consultados em ordem crescente
@@ -575,23 +576,33 @@ Os web services da Sefaz possuem regras rígidas de uso para prevenir abuso e ga
 ### `consultaUltNSU` - Regras Específicas
 
 #### 🚨 **Regra Crítica - Aguardar 1 Hora após cStat 137**
+
 ```typescript
 // ❌ ERRADO - Pode causar bloqueio
-const resultado1 = await distribuicao.consultaUltNSU({ ultNSU: "000000000000001" })
+const resultado1 = await distribuicao.consultaUltNSU({
+  ultNSU: "000000000000001",
+})
 if (resultado1.data?.cStat === "137") {
   // NÃO faça nova consulta imediatamente!
-  const resultado2 = await distribuicao.consultaUltNSU({ ultNSU: "000000000000001" })
+  const resultado2 = await distribuicao.consultaUltNSU({
+    ultNSU: "000000000000001",
+  })
 }
 
 // ✅ CORRETO - Aguardar 1 hora
-const resultado1 = await distribuicao.consultaUltNSU({ ultNSU: "000000000000001" })
+const resultado1 = await distribuicao.consultaUltNSU({
+  ultNSU: "000000000000001",
+})
 if (resultado1.data?.cStat === "137") {
-  console.log("Nenhum documento encontrado. Aguardar 1 hora antes da próxima consulta.")
+  console.log(
+    "Nenhum documento encontrado. Aguardar 1 hora antes da próxima consulta."
+  )
   // Implementar delay de 1 hora ou agendar para depois
 }
 ```
 
 #### Comportamento Esperado
+
 - **cStat 137**: "Nenhum documento localizado" → **AGUARDAR 1 HORA**
 - **cStat 138**: "Documento(s) localizado(s)" → Pode continuar consultando
 - **cStat 656**: "Consumo Indevido" → **CNPJ BLOQUEADO POR 1 HORA**
@@ -599,6 +610,7 @@ if (resultado1.data?.cStat === "137") {
 ### `consultaChNFe` e `consultaNSU` - Limite de Consultas
 
 #### 🚨 **Limite: 20 Consultas por Hora**
+
 ```typescript
 // ❌ ERRADO - Pode exceder limite
 for (let i = 0; i < 25; i++) {
@@ -615,11 +627,11 @@ for (const chave of chaves) {
     const tempoEspera = 3600000 - (Date.now() - inicioHora)
     if (tempoEspera > 0) {
       console.log(`Aguardando ${tempoEspera}ms para nova consulta...`)
-      await new Promise(resolve => setTimeout(resolve, tempoEspera))
+      await new Promise((resolve) => setTimeout(resolve, tempoEspera))
       consultasRealizadas = 0
     }
   }
-  
+
   await distribuicao.consultaChNFe({ chNFe: chave })
   consultasRealizadas++
 }
@@ -628,20 +640,24 @@ for (const chave of chaves) {
 ### Manifestação de Eventos - Regras Específicas
 
 #### Limitações por Lote
+
 - **Máximo 20 eventos por lote**
 - **idLote único**: Não reutilizar identificadores
 - **Uma manifestação por tipo**: Cada NFe pode receber apenas um evento de cada tipo
 
 #### Evento 210240 - Justificativa Obrigatória
+
 ```typescript
 // ✅ CORRETO - Operação não realizada com justificativa
 await recepcaoEvento.enviarEvento({
   idLote: Date.now().toString(),
-  lote: [{
-    chNFe: "35220314200166000187550010000000001123456789",
-    tpEvento: TipoEvento.OPERACAO_NAO_REALIZADA,
-    justificativa: "Mercadoria não foi entregue devido ao endereço incorreto"
-  }]
+  lote: [
+    {
+      chNFe: "35220314200166000187550010000000001123456789",
+      tpEvento: TipoEvento.OPERACAO_NAO_REALIZADA,
+      justificativa: "Mercadoria não foi entregue devido ao endereço incorreto",
+    },
+  ],
 })
 ```
 
@@ -649,32 +665,33 @@ await recepcaoEvento.enviarEvento({
 
 ### Distribuição DFe
 
-| Código | Descrição | Ação Necessária |
-|--------|-----------|-----------------|
-| `137` | Nenhum documento localizado | **Aguardar 1 hora** antes da próxima consulta |
-| `138` | Documento(s) localizado(s) | Processar documentos e continuar |
-| `217` | NFe inexistente para a chave informada | Verificar chave de acesso |
-| `236` | Chave de Acesso com dígito verificador inválido | Corrigir chave de acesso |
-| `589` | NSU superior ao máximo disponível | Usar NSU válido |
-| `632` | Solicitação fora de prazo (>90 dias) | Documento não mais disponível |
-| `640` | CNPJ/CPF sem permissão para consultar | Verificar permissões |
-| `641` | NFe indisponível para o emitente | Emitente não pode baixar própria NFe |
-| `653` | NFe Cancelada, indisponível | Documento cancelado |
-| `654` | NFe Denegada, indisponível | Documento denegado |
-| `656` | **Consumo Indevido** | **CNPJ bloqueado por 1 hora** |
+| Código | Descrição                                       | Ação Necessária                               |
+| ------ | ----------------------------------------------- | --------------------------------------------- |
+| `137`  | Nenhum documento localizado                     | **Aguardar 1 hora** antes da próxima consulta |
+| `138`  | Documento(s) localizado(s)                      | Processar documentos e continuar              |
+| `217`  | NFe inexistente para a chave informada          | Verificar chave de acesso                     |
+| `236`  | Chave de Acesso com dígito verificador inválido | Corrigir chave de acesso                      |
+| `589`  | NSU superior ao máximo disponível               | Usar NSU válido                               |
+| `632`  | Solicitação fora de prazo (>90 dias)            | Documento não mais disponível                 |
+| `640`  | CNPJ/CPF sem permissão para consultar           | Verificar permissões                          |
+| `641`  | NFe indisponível para o emitente                | Emitente não pode baixar própria NFe          |
+| `653`  | NFe Cancelada, indisponível                     | Documento cancelado                           |
+| `654`  | NFe Denegada, indisponível                      | Documento denegado                            |
+| `656`  | **Consumo Indevido**                            | **CNPJ bloqueado por 1 hora**                 |
 
 ### Eventos de Manifestação
 
-| Código | Descrição | Ação Necessária |
-|--------|-----------|-----------------|
-| `128` | Lote de evento processado | Verificar status individual dos eventos |
-| `135` | Evento registrado e vinculado a NFe | Sucesso |
-| `573` | Duplicidade de evento | Evento já foi registrado |
-| `656` | Rejeição: Falha na comunicação | Verificar conectividade ou aguardar |
+| Código | Descrição                           | Ação Necessária                         |
+| ------ | ----------------------------------- | --------------------------------------- |
+| `128`  | Lote de evento processado           | Verificar status individual dos eventos |
+| `135`  | Evento registrado e vinculado a NFe | Sucesso                                 |
+| `573`  | Duplicidade de evento               | Evento já foi registrado                |
+| `656`  | Rejeição: Falha na comunicação      | Verificar conectividade ou aguardar     |
 
 ## Implementação de Boas Práticas
 
 ### Controle de Rate Limiting
+
 ```typescript
 class NFeRateLimiter {
   private consultasChNFe = 0
@@ -683,70 +700,81 @@ class NFeRateLimiter {
 
   async consultaChNFeComLimite(distribuicao: NFeDistribuicao, chNFe: string) {
     const agora = Date.now()
-    
+
     // Verificar limite de 20/hora
     if (agora - this.ultimaConsultaChNFe > 3600000) {
       this.consultasChNFe = 0
     }
-    
+
     if (this.consultasChNFe >= 20) {
       const espera = 3600000 - (agora - this.ultimaConsultaChNFe)
       throw new Error(`Limite excedido. Aguardar ${espera}ms`)
     }
-    
+
     const resultado = await distribuicao.consultaChNFe({ chNFe })
     this.consultasChNFe++
     this.ultimaConsultaChNFe = agora
-    
+
     return resultado
   }
 
-  async consultaUltNSUComControle(distribuicao: NFeDistribuicao, ultNSU: string) {
+  async consultaUltNSUComControle(
+    distribuicao: NFeDistribuicao,
+    ultNSU: string
+  ) {
     const agora = Date.now()
-    
+
     // Verificar se deve aguardar após último 137
-    if (this.ultimoUltNSUCom137 && (agora - this.ultimoUltNSUCom137) < 3600000) {
+    if (this.ultimoUltNSUCom137 && agora - this.ultimoUltNSUCom137 < 3600000) {
       const espera = 3600000 - (agora - this.ultimoUltNSUCom137)
       throw new Error(`Aguardar ${espera}ms após último cStat 137`)
     }
-    
+
     const resultado = await distribuicao.consultaUltNSU({ ultNSU })
-    
+
     if (resultado.data?.cStat === "137") {
       this.ultimoUltNSUCom137 = agora
     }
-    
+
     return resultado
   }
 }
 ```
 
 ### Tratamento de Erros Específicos
+
 ```typescript
-async function consultarComTratamento(distribuicao: NFeDistribuicao, ultNSU: string) {
+async function consultarComTratamento(
+  distribuicao: NFeDistribuicao,
+  ultNSU: string
+) {
   try {
     const resultado = await distribuicao.consultaUltNSU({ ultNSU })
-    
+
     switch (resultado.data?.cStat) {
       case "137":
         console.log("Nenhum documento encontrado. Aguardando 1 hora...")
         // Implementar lógica de espera
         break
-        
+
       case "138":
-        console.log(`Encontrados documentos. Próximo NSU: ${resultado.data.ultNSU}`)
+        console.log(
+          `Encontrados documentos. Próximo NSU: ${resultado.data.ultNSU}`
+        )
         // Processar documentos
         break
-        
+
       case "656":
         console.error("CNPJ bloqueado por uso indevido. Aguardar 1 hora.")
         // Implementar lógica de bloqueio
         break
-        
+
       default:
-        console.log(`Status: ${resultado.data?.cStat} - ${resultado.data?.xMotivo}`)
+        console.log(
+          `Status: ${resultado.data?.cStat} - ${resultado.data?.xMotivo}`
+        )
     }
-    
+
     return resultado
   } catch (error) {
     console.error("Erro na consulta:", error)
