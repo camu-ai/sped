@@ -1,0 +1,200 @@
+---
+title: Configuração
+description: Como configurar certificados digitais e ambientes para uso da biblioteca
+---
+
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# Configuração
+
+## Autenticação por Certificado Digital
+
+A biblioteca suporta dois tipos de autenticação por certificado digital:
+
+### Opção 1: Certificado PFX
+
+```typescript
+import { UFCode, Ambiente } from "@camu-ai/sped-nfe"
+import { readFileSync } from "fs"
+
+const pfx = readFileSync("./certificado.pfx")
+
+const config = {
+  cUFAutor: UFCode.PR, // Código do estado
+  cnpj: "12345678901234", // CNPJ da empresa
+  tpAmb: Ambiente.HOMOLOGACAO, // Ambiente
+  pfx: pfx, // Buffer do arquivo PFX
+  passphrase: "senha-do-certificado", // Senha do certificado
+}
+```
+
+### Opção 2: Arquivos Separados (Cert/Key)
+
+```typescript
+import { UFCode, Ambiente } from "@camu-ai/sped-nfe"
+import { readFileSync } from "fs"
+
+const cert = readFileSync("./certificado.crt", "utf8")
+const key = readFileSync("./chave-privada.key", "utf8")
+
+const config = {
+  cUFAutor: UFCode.PR,
+  cnpj: "12345678901234",
+  tpAmb: Ambiente.HOMOLOGACAO,
+  cert: cert, // Conteúdo do certificado em string
+  key: key, // Conteúdo da chave privada em string
+}
+```
+
+## Parâmetros de Configuração
+
+### Parâmetros Obrigatórios
+
+| Parâmetro | Tipo | Descrição |
+|-----------|------|-----------|
+| `cUFAutor` | UFCode \| string | Código do estado onde a empresa está autorizada |
+| `cnpj` ou `cpf` | string | CNPJ (14 dígitos) ou CPF (11 dígitos) |
+| `tpAmb` | Ambiente \| '1' \| '2' | Ambiente: Produção/1 ou Homologação/2 |
+
+### Autenticação (escolha uma opção)
+
+**Opção PFX:**
+| Parâmetro | Tipo | Descrição |
+|-----------|------|-----------|
+| `pfx` | Buffer | Conteúdo do arquivo de certificado PFX |
+| `passphrase` | string | Senha do certificado PFX |
+
+**Opção Cert/Key:**
+| Parâmetro | Tipo | Descrição |
+|-----------|------|-----------|
+| `cert` | string | Conteúdo do certificado |
+| `key` | string | Conteúdo da chave privada |
+
+## Códigos de Estados (cUFAutor)
+
+Você pode usar o enum `UFCode` ou os códigos diretos:
+
+<Tabs items={['Enum (Recomendado)', 'Código Direto']}>
+<Tab value="Enum (Recomendado)">
+
+```typescript
+import { UFCode } from "@camu-ai/sped-nfe"
+
+const config = {
+  cUFAutor: UFCode.SP, // São Paulo
+  // ... outras configurações
+}
+```
+
+</Tab>
+<Tab value="Código Direto">
+
+```typescript
+const config = {
+  cUFAutor: "35", // São Paulo
+  // ... outras configurações
+}
+```
+
+</Tab>
+</Tabs>
+
+### Estados Disponíveis
+
+| Estado | Código | Enum |
+|--------|--------|------|
+| Rondônia | '11' | `UFCode.RO` |
+| Acre | '12' | `UFCode.AC` |
+| Amazonas | '13' | `UFCode.AM` |
+| Roraima | '14' | `UFCode.RR` |
+| Pará | '15' | `UFCode.PA` |
+| Amapá | '16' | `UFCode.AP` |
+| Tocantins | '17' | `UFCode.TO` |
+| Maranhão | '21' | `UFCode.MA` |
+| Piauí | '22' | `UFCode.PI` |
+| Ceará | '23' | `UFCode.CE` |
+| Rio Grande do Norte | '24' | `UFCode.RN` |
+| Paraíba | '25' | `UFCode.PB` |
+| Pernambuco | '26' | `UFCode.PE` |
+| Alagoas | '27' | `UFCode.AL` |
+| Sergipe | '28' | `UFCode.SE` |
+| Bahia | '29' | `UFCode.BA` |
+| Minas Gerais | '31' | `UFCode.MG` |
+| Espírito Santo | '32' | `UFCode.ES` |
+| Rio de Janeiro | '33' | `UFCode.RJ` |
+| São Paulo | '35' | `UFCode.SP` |
+| Paraná | '41' | `UFCode.PR` |
+| Santa Catarina | '42' | `UFCode.SC` |
+| Rio Grande do Sul | '43' | `UFCode.RS` |
+| Mato Grosso do Sul | '50' | `UFCode.MS` |
+| Mato Grosso | '51' | `UFCode.MT` |
+| Goiás | '52' | `UFCode.GO` |
+| Distrito Federal | '53' | `UFCode.DF` |
+
+## Configuração de Ambiente
+
+### Ambiente de Homologação
+
+Use sempre o ambiente de homologação para testes:
+
+```typescript
+import { Ambiente } from "@camu-ai/sped-nfe"
+
+const configHomologacao = {
+  cUFAutor: "41",
+  cnpj: "12345678901234",
+  tpAmb: Ambiente.HOMOLOGACAO, // ou "2"
+  pfx: certificadoHomologacao,
+  passphrase: "senha-hom",
+}
+```
+
+### Ambiente de Produção
+
+<Callout type="warn">
+**Atenção**: Use o ambiente de produção apenas após validar completamente sua implementação em homologação.
+</Callout>
+
+```typescript
+import { Ambiente } from "@camu-ai/sped-nfe"
+
+const configProducao = {
+  cUFAutor: "41",
+  cnpj: "12345678901234",
+  tpAmb: Ambiente.PRODUCAO, // ou "1"
+  pfx: certificadoProducao,
+  passphrase: "senha-prod",
+}
+```
+
+## Trabalhando com CPF
+
+Para pessoas físicas, use `cpf` ao invés de `cnpj`:
+
+```typescript
+const configComCpf = {
+  cUFAutor: "41",
+  cpf: "12345678901", // 11 dígitos
+  tpAmb: "2",
+  pfx: bufferCertificado,
+  passphrase: "senha",
+}
+```
+
+## Validação de Configuração
+
+A biblioteca valida automaticamente sua configuração. Os principais erros que podem ocorrer:
+
+- **Certificado inválido**: Verifique se o arquivo PFX não está corrompido
+- **Senha incorreta**: Certifique-se de que a passphrase está correta
+- **CNPJ/CPF inválido**: Verifique se os dígitos estão corretos
+- **UF inexistente**: Use um código de UF válido
+
+## Próximos Passos
+
+Com a configuração pronta, você pode:
+
+- [📦 Consultar documentos NFe](/docs/consulta-nfe)
+- [📤 Enviar eventos de manifestação](/docs/eventos)
+- [⚠️ Ler as regras críticas dos web services](/docs/regras-web-services)

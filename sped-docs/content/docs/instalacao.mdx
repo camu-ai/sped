@@ -1,0 +1,107 @@
+---
+title: Instalação
+description: Como instalar e configurar a biblioteca @camu-ai/sped-nfe
+---
+
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# Instalação
+
+## Requisitos do Sistema
+
+Antes de instalar a biblioteca, certifique-se de que seu ambiente atende aos seguintes requisitos:
+
+- **Node.js 16+**
+- **TypeScript 4.7+** (para projetos TypeScript)
+- **Certificado digital válido** emitido por uma Autoridade Certificadora brasileira
+- **CNPJ ou CPF** registrado na Sefaz
+
+## Instalação da Biblioteca
+
+<Tabs items={['npm', 'yarn', 'pnpm']}>
+<Tab value="npm">
+
+```bash
+npm install @camu-ai/sped-nfe
+```
+
+</Tab>
+<Tab value="yarn">
+
+```bash
+yarn add @camu-ai/sped-nfe
+```
+
+</Tab>
+<Tab value="pnpm">
+
+```bash
+pnpm add @camu-ai/sped-nfe
+```
+
+</Tab>
+</Tabs>
+
+## Verificação da Instalação
+
+Após a instalação, você pode verificar se tudo está funcionando corretamente:
+
+```typescript
+import { UFCode, Ambiente } from "@camu-ai/sped-nfe"
+
+console.log("UFCode.SP:", UFCode.SP) // Deve imprimir: "35"
+console.log("Ambiente.HOMOLOGACAO:", Ambiente.HOMOLOGACAO) // Deve imprimir: "2"
+```
+
+## Dependências
+
+A biblioteca possui as seguintes dependências principais que serão instaladas automaticamente:
+
+- **axios** - Para requisições HTTP
+- **fast-xml-parser** - Para manipulação de XML
+- **node-forge** - Para operações criptográficas com certificados
+
+<Callout type="info">
+**Nota**: Todas as dependências são instaladas automaticamente durante o processo de instalação. Não é necessário instalá-las manualmente.
+</Callout>
+
+## Suporte a Módulos
+
+A biblioteca oferece suporte completo para ambos os sistemas de módulos:
+
+### ESM (ECMAScript Modules)
+
+```typescript
+import { createNFeDistribuicao, UFCode, Ambiente } from "@camu-ai/sped-nfe"
+```
+
+### CommonJS
+
+```javascript
+const { createNFeDistribuicao, UFCode, Ambiente } = require("@camu-ai/sped-nfe")
+```
+
+## Configuração do TypeScript
+
+Se você estiver usando TypeScript, certifique-se de que sua configuração `tsconfig.json` inclui:
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  }
+}
+```
+
+## Próximos Passos
+
+Agora que a biblioteca está instalada, você pode prosseguir para:
+
+- [⚙️ Configuração](/docs/configuracao) - Configure seus certificados e ambientes
+- [📦 Consulta NFe](/docs/consulta-nfe) - Aprenda a consultar documentos fiscais
