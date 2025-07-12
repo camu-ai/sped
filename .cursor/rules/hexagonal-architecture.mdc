@@ -1,0 +1,25 @@
+---
+description: "Enforce package Hexagonal layout & public boundaries"
+globs:
+  - packages/**/src/**/*.{ts,tsx}
+alwaysApply: true
+---
+
+## Hexagonal Package Layout
+src/
+├─ api.ts          # 🌍 PUBLIC – orchestrates controllers
+├─ controllers/    # 🎛️ PRIVATE – flow control
+├─ logic/          # 🧠 PRIVATE – pure functions, no side-effects
+├─ models/         # 📋 PRIVATE – internal types
+├─ adapters/       # 🔄 PRIVATE – schema transforms
+├─ database/       # 🔒 PRIVATE – persistence
+├─ diplomat/       # 🌐 PRIVATE – external calls
+└─ schema/         # 📝 PUBLIC – in/​out contracts
+
+**Rules**
+
+* Only `api.ts` & `schema/` are exported via `index.ts`.  
+* `logic/` stays pure—no DB, HTTP, Date, randomness.  
+* Apps interact **only** through package APIs.
+
+Expose internal layers and you break encapsulation.

@@ -1,0 +1,473 @@
+---
+title: Exemplos Práticos
+description: Exemplos completos de uso da biblioteca em cenários reais
+---
+
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# Exemplos Práticos
+
+## Sincronização Completa de NFe
+
+Exemplo completo de sincronização com controle de rate limiting:
+
+```typescript
+import { 
+  createNFeDistribuicao, 
+  UFCode, 
+  Ambiente,
+  type NFeDistribuicaoConfig 
+} from "@camu-ai/sped-nfe"
+import { readFileSync, writeFileSync } from "fs"
+
+class SincronizadorNFe {
+  private distribuicao: ReturnType<typeof createNFeDistribuicao>
+  private ultimaConsulta137 = 0
+  
+  constructor(config: NFeDistribuicaoConfig) {
+    this.distribuicao = createNFeDistribuicao(config)
+  }
+
+  async sincronizarTodos(nsuInicial: string = "000000000000001") {
+    let ultNSU = nsuInicial
+    let totalDocumentos = 0
+    
+    console.log(`Iniciando sincronização a partir do NSU: ${ultNSU}`)
+    
+    while (true) {
+      // Verificar se deve aguardar após último 137
+      if (this.ultimaConsulta137 && (Date.now() - this.ultimaConsulta137) < 3600000) {
+        const espera = 3600000 - (Date.now() - this.ultimaConsulta137)
+        console.log(`Aguardando ${Math.round(espera/1000/60)} minutos após último cStat 137`)
+        await this.delay(espera)
+      }
+      
+      try {
+        const resultado = await this.distribuicao.consultaUltNSU({ ultNSU })
+        
+        if (resultado.data?.cStat === "137") {
+          this.ultimaConsulta137 = Date.now()
+          console.log(`Sincronização completa! Total de documentos processados: ${totalDocumentos}`)
+          break
+        }
+        
+        if (resultado.data?.cStat === "138" && resultado.data.docZip) {
+          console.log(`Encontrados ${resultado.data.docZip.length} documentos`)
+          
+          // Processar documentos
+          for (const doc of resultado.data.docZip) {
+            await this.processarDocumento(doc)
+            totalDocumentos++
+          }
+          
+          // Salvar último NSU processado
+          ultNSU = resultado.data.ultNSU
+          this.salvarUltimoNSU(ultNSU)
+          
+          console.log(`Próximo NSU: ${ultNSU}`)
+        } else if (resultado.data?.cStat === "656") {
+          console.error("CNPJ bloqueado por uso indevido. Aguardar 1 hora.")
+          await this.delay(3600000) // 1 hora
+        } else {
+          console.error("Erro na consulta:", resultado.error || resultado.data?.xMotivo)
+          break
+        }
+        
+        // Pequeno delay entre consultas para não sobrecarregar
+        await this.delay(1000)
+        
+      } catch (error) {
+        console.error("Erro na sincronização:", error)
+        await this.delay(5000) // Aguardar 5s em caso de erro
+      }
+    }
+  }
+
+  private async processarDocumento(doc: any) {
+    console.log(`Processando documento NSU: ${doc.nsu}, Schema: ${doc.schema}`)
+    
+    // Salvar XML
+    const fileName = `./documentos/nsu_${doc.nsu}.xml`
+    writeFileSync(fileName, doc.xml)
+    
+    // Processar conforme o tipo de documento
+    switch (doc.schema) {
+      case "procNFe_v4.00.xsd":
+        await this.processarNFeCompleta(doc)
+        break
+      case "resNFe_v1.01.xsd":
+        await this.processarResumoNFe(doc)
+        break
+      case "procEventoNFe_v1.00.xsd":
+        await this.processarEvento(doc)
+        break
+      default:
+        console.log(`Tipo de documento não reconhecido: ${doc.schema}`)
+    }
+  }
+
+  private async processarNFeCompleta(doc: any) {
+    // Extrair dados da NFe completa
+    const nfe = doc.json
+    console.log(`NFe completa - Chave: ${nfe.chNFe}`)
+    // Implementar lógica de processamento da NFe
+  }
+
+  private async processarResumoNFe(doc: any) {
+    // Processar resumo de NFe
+    const resumo = doc.json
+    console.log(`Resumo NFe - Chave: ${resumo.chNFe}`)
+    // Implementar lógica de processamento do resumo
+  }
+
+  private async processarEvento(doc: any) {
+    // Processar evento
+    const evento = doc.json
+    console.log(`Evento - Tipo: ${evento.tpEvento}`)
+    // Implementar lógica de processamento do evento
+  }
+
+  private salvarUltimoNSU(nsu: string) {
+    writeFileSync("./ultimo_nsu.txt", nsu)
+  }
+
+  private carregarUltimoNSU(): string {
+    try {
+      return readFileSync("./ultimo_nsu.txt", "utf8").trim()
+    } catch {
+      return "000000000000001"
+    }
+  }
+
+  private delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms))
+  }
+}
+
+// Uso
+async function main() {
+  const pfx = readFileSync("./certificado.pfx")
+  
+  const config = {
+    cUFAutor: UFCode.PR,
+    cnpj: "12345678901234",
+    tpAmb: Ambiente.HOMOLOGACAO,
+    pfx,
+    passphrase: "senha-certificado",
+  }
+  
+  const sincronizador = new SincronizadorNFe(config)
+  await sincronizador.sincronizarTodos()
+}
+
+main().catch(console.error)
+```
+
+## Sistema de Manifestação Automatizada
+
+```typescript
+import { 
+  createNFeDistribuicao,
+  createNFeRecepcaoEvento,
+  TipoEvento,
+  type NFeDistribuicaoConfig,
+  type NFeRecepcaoEventoConfig 
+} from "@camu-ai/sped-nfe"
+
+interface RegraManifestacao {
+  cnpjEmitente?: string
+  valorMinimo?: number
+  palavrasChave?: string[]
+  tipoEvento: TipoEvento
+  justificativa?: string
+}
+
+class SistemaManifestacao {
+  private distribuicao: ReturnType<typeof createNFeDistribuicao>
+  private recepcaoEvento: ReturnType<typeof createNFeRecepcaoEvento>
+  private regras: RegraManifestacao[] = []
+
+  constructor(
+    configDistribuicao: NFeDistribuicaoConfig,
+    configEvento: NFeRecepcaoEventoConfig
+  ) {
+    this.distribuicao = createNFeDistribuicao(configDistribuicao)
+    this.recepcaoEvento = createNFeRecepcaoEvento(configEvento)
+  }
+
+  adicionarRegra(regra: RegraManifestacao) {
+    this.regras.push(regra)
+  }
+
+  async processarNovosDocumentos(ultNSU: string) {
+    const resultado = await this.distribuicao.consultaUltNSU({ ultNSU })
+    
+    if (resultado.data?.cStat === "138" && resultado.data.docZip) {
+      const manifestacoes: Array<{chNFe: string, tpEvento: TipoEvento, justificativa?: string}> = []
+      
+      for (const doc of resultado.data.docZip) {
+        if (doc.schema === "resNFe_v1.01.xsd") {
+          const manifestacao = await this.avaliarDocumento(doc)
+          if (manifestacao) {
+            manifestacoes.push(manifestacao)
+          }
+        }
+      }
+      
+      // Enviar manifestações em lotes de até 20
+      await this.enviarManifestacoes(manifestacoes)
+      
+      return resultado.data.ultNSU
+    }
+    
+    return ultNSU
+  }
+
+  private async avaliarDocumento(doc: any) {
+    const resumo = doc.json
+    const chNFe = resumo.chNFe
+    const valor = parseFloat(resumo.vNF || 0)
+    const cnpjEmitente = resumo.CNPJ
+    
+    for (const regra of this.regras) {
+      if (this.aplicarRegra(regra, { valor, cnpjEmitente, resumo })) {
+        console.log(`Aplicando regra para NFe ${chNFe}: ${TipoEvento[regra.tipoEvento]}`)
+        
+        return {
+          chNFe,
+          tpEvento: regra.tipoEvento,
+          justificativa: regra.justificativa
+        }
+      }
+    }
+    
+    // Regra padrão: Ciência da Operação
+    return {
+      chNFe,
+      tpEvento: TipoEvento.CIENCIA_OPERACAO
+    }
+  }
+
+  private aplicarRegra(regra: RegraManifestacao, dados: any): boolean {
+    if (regra.cnpjEmitente && dados.cnpjEmitente !== regra.cnpjEmitente) {
+      return false
+    }
+    
+    if (regra.valorMinimo && dados.valor < regra.valorMinimo) {
+      return false
+    }
+    
+    if (regra.palavrasChave) {
+      const textoNFe = JSON.stringify(dados.resumo).toLowerCase()
+      const temPalavra = regra.palavrasChave.some(palavra => 
+        textoNFe.includes(palavra.toLowerCase())
+      )
+      if (!temPalavra) {
+        return false
+      }
+    }
+    
+    return true
+  }
+
+  private async enviarManifestacoes(manifestacoes: any[]) {
+    const lotes = this.dividirEmLotes(manifestacoes, 20)
+    
+    for (const lote of lotes) {
+      try {
+        const resultado = await this.recepcaoEvento.enviarEvento({
+          idLote: Date.now().toString(),
+          lote
+        })
+        
+        if (resultado.data?.cStat === "128") {
+          console.log(`Lote processado com ${lote.length} manifestações`)
+          
+          // Verificar status individual
+          if (resultado.data.infEvento) {
+            for (const evento of resultado.data.infEvento) {
+              if (evento.cStat === "135") {
+                console.log(`✅ Manifestação registrada para ${evento.chNFe}`)
+              } else {
+                console.log(`❌ Erro na manifestação ${evento.chNFe}: ${evento.xMotivo}`)
+              }
+            }
+          }
+        }
+        
+        // Delay entre lotes
+        await this.delay(2000)
+        
+      } catch (error) {
+        console.error("Erro ao enviar lote de manifestações:", error)
+      }
+    }
+  }
+
+  private dividirEmLotes<T>(array: T[], tamanho: number): T[][] {
+    const lotes: T[][] = []
+    for (let i = 0; i < array.length; i += tamanho) {
+      lotes.push(array.slice(i, i + tamanho))
+    }
+    return lotes
+  }
+
+  private delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms))
+  }
+}
+
+// Configuração e uso
+async function exemploManifestacao() {
+  const config = {
+    cUFAutor: UFCode.PR,
+    cnpj: "12345678901234",
+    tpAmb: Ambiente.HOMOLOGACAO,
+    pfx: readFileSync("./certificado.pfx"),
+    passphrase: "senha",
+  }
+  
+  const sistema = new SistemaManifestacao(config, config)
+  
+  // Configurar regras de manifestação
+  sistema.adicionarRegra({
+    cnpjEmitente: "11222333000195",
+    tipoEvento: TipoEvento.CONFIRMACAO_OPERACAO
+  })
+  
+  sistema.adicionarRegra({
+    valorMinimo: 10000,
+    tipoEvento: TipoEvento.CONFIRMACAO_OPERACAO
+  })
+  
+  sistema.adicionarRegra({
+    palavrasChave: ["produto defeituoso", "entrega atrasada"],
+    tipoEvento: TipoEvento.OPERACAO_NAO_REALIZADA,
+    justificativa: "Problemas identificados na entrega ou produto"
+  })
+  
+  // Processar documentos
+  let ultNSU = "000000000000001"
+  
+  while (true) {
+    try {
+      ultNSU = await sistema.processarNovosDocumentos(ultNSU)
+      await sistema.delay(60000) // Aguardar 1 minuto entre consultas
+    } catch (error) {
+      console.error("Erro no processamento:", error)
+      await sistema.delay(300000) // Aguardar 5 minutos em caso de erro
+    }
+  }
+}
+```
+
+## Consulta de NFe Específicas com Rate Limiting
+
+```typescript
+class ConsultaNFeService {
+  private distribuicao: ReturnType<typeof createNFeDistribuicao>
+  private consultasRealizadas = 0
+  private inicioJanela = Date.now()
+  private readonly MAX_CONSULTAS_HORA = 20
+
+  constructor(config: NFeDistribuicaoConfig) {
+    this.distribuicao = createNFeDistribuicao(config)
+  }
+
+  async consultarChaves(chaves: string[]): Promise<Map<string, any>> {
+    const resultados = new Map<string, any>()
+    
+    for (const chave of chaves) {
+      try {
+        await this.verificarLimite()
+        
+        const resultado = await this.distribuicao.consultaChNFe({ chNFe: chave })
+        this.consultasRealizadas++
+        
+        if (resultado.data?.cStat === "138") {
+          resultados.set(chave, resultado.data)
+          console.log(`✅ NFe encontrada: ${chave}`)
+        } else {
+          console.log(`❌ NFe não encontrada: ${chave} - ${resultado.data?.xMotivo}`)
+        }
+        
+      } catch (error) {
+        console.error(`Erro ao consultar ${chave}:`, error)
+      }
+    }
+    
+    return resultados
+  }
+
+  private async verificarLimite() {
+    const agora = Date.now()
+    const umHora = 3600000 // 1 hora em ms
+    
+    // Reset do contador a cada hora
+    if (agora - this.inicioJanela >= umHora) {
+      this.consultasRealizadas = 0
+      this.inicioJanela = agora
+    }
+    
+    // Verificar se excedeu o limite
+    if (this.consultasRealizadas >= this.MAX_CONSULTAS_HORA) {
+      const tempoEspera = umHora - (agora - this.inicioJanela)
+      console.log(`Limite de consultas atingido. Aguardando ${Math.round(tempoEspera/1000/60)} minutos...`)
+      await this.delay(tempoEspera)
+      
+      // Reset após espera
+      this.consultasRealizadas = 0
+      this.inicioJanela = Date.now()
+    }
+  }
+
+  private delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms))
+  }
+
+  getStatusLimite() {
+    return {
+      consultasRealizadas: this.consultasRealizadas,
+      consultasRestantes: this.MAX_CONSULTAS_HORA - this.consultasRealizadas,
+      resetEm: new Date(this.inicioJanela + 3600000)
+    }
+  }
+}
+
+// Uso
+async function exemploConsultaEspecifica() {
+  const config = {
+    cUFAutor: UFCode.SP,
+    cnpj: "12345678901234",
+    tpAmb: Ambiente.HOMOLOGACAO,
+    pfx: readFileSync("./certificado.pfx"),
+    passphrase: "senha",
+  }
+  
+  const service = new ConsultaNFeService(config)
+  
+  const chavesParaConsultar = [
+    "35220314200166000187550010000000001123456789",
+    "35220314200166000187550010000000002123456789",
+    "35220314200166000187550010000000003123456789",
+    // ... mais chaves
+  ]
+  
+  console.log("Status inicial:", service.getStatusLimite())
+  
+  const resultados = await service.consultarChaves(chavesParaConsultar)
+  
+  console.log(`Consultas realizadas: ${resultados.size} de ${chavesParaConsultar.length}`)
+  console.log("Status final:", service.getStatusLimite())
+}
+```
+
+<Callout type="info">
+**Dica**: Todos esses exemplos incluem controles para respeitar as regras dos web services da Sefaz. Adapte-os conforme suas necessidades específicas.
+</Callout>
+
+## Próximos Passos
+
+- [📚 Referência da API](/docs/api-reference) - Documentação completa da API
+- [⚠️ Regras dos Web Services](/docs/regras-web-services) - Regras importantes para produção

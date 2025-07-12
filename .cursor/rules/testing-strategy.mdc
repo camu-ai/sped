@@ -1,0 +1,15 @@
+---
+description: "Two-layer testing: unit for pure logic, integration via API"
+globs:
+  - packages/**/tests/**/*.{ts,tsx}
+  - apps/**/tests/**/*.{ts,tsx}
+alwaysApply: true
+---
+
+## Testing Strategy
+
+1. **Unit tests** → `logic/` & `adapters/`; no mocks required.  
+2. **Integration tests** → start at `api.ts`; mock external resources (DB, HTTP).  
+   * Do **NOT** test controllers directly—exercise them through API calls.
+
+Aim for full branch coverage on pure functions and realistic end-to-end flows on API.

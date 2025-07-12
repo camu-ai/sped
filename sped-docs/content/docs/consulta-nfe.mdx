@@ -1,0 +1,248 @@
+---
+title: Consulta de NFe
+description: Como consultar documentos fiscais usando os web services de distribuição DFe
+---
+
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# Consulta de Documentos NFe
+
+O web service de Distribuição DFe permite consultar documentos fiscais de três formas diferentes.
+
+## Criando uma Instância de Distribuição
+
+Primeiro, crie uma instância do controlador de distribuição:
+
+```typescript
+import { createNFeDistribuicao } from "@camu-ai/sped-nfe"
+
+const distribuicao = createNFeDistribuicao(config)
+```
+
+## Métodos de Consulta
+
+### 1. Consulta por Último NSU (`consultaUltNSU`)
+
+**Uso principal**: Sincronização e download de novos documentos
+
+```typescript
+const resultado = await distribuicao.consultaUltNSU({
+  ultNSU: "000000000000001", // Último NSU conhecido
+})
+
+if (resultado.data) {
+  console.log("Status:", resultado.data.cStat)
+  console.log("Próximo NSU:", resultado.data.ultNSU)
+  
+  // Processar documentos encontrados
+  if (resultado.data.docZip) {
+    for (const doc of resultado.data.docZip) {
+      console.log(`Documento NSU: ${doc.nsu}`)
+      console.log(`Schema: ${doc.schema}`)
+      console.log(`XML:`, doc.xml)
+      console.log(`JSON:`, doc.json)
+    }
+  }
+}
+```
+
+<Callout type="warn">
+**Regra Crítica**: Após receber cStat=137 ("Nenhum documento localizado"), você DEVE aguardar 1 hora antes da próxima consulta, caso contrário seu CNPJ será bloqueado.
+</Callout>
+
+### 2. Consulta por Chave de Acesso (`consultaChNFe`)
+
+**Uso principal**: Buscar uma NFe específica conhecendo sua chave
+
+```typescript
+const resultado = await distribuicao.consultaChNFe({
+  chNFe: "35220314200166000187550010000000001123456789", // 44 dígitos
+})
+
+if (resultado.data) {
+  console.log("NFe encontrada:", resultado.data.cStat)
+  // Processar documento específico
+}
+```
+
+<Callout type="warn">
+**Limite**: Máximo 20 consultas por hora por CNPJ. Exceder esse limite resulta em bloqueio de 1 hora.
+</Callout>
+
+### 3. Consulta por NSU Específico (`consultaNSU`)
+
+**Uso principal**: Recuperar documento de NSU específico (fechar lacunas)
+
+```typescript
+const resultado = await distribuicao.consultaNSU({
+  NSU: "000000000000045", // NSU específico
+})
+
+if (resultado.data) {
+  console.log("Documento NSU encontrado:", resultado.data.cStat)
+  // Processar documento do NSU específico
+}
+```
+
+<Callout type="warn">
+**Limite**: Máximo 20 consultas por hora por CNPJ (mesmo limite do consultaChNFe).
+</Callout>
+
+## Processamento de Respostas
+
+### Estrutura da Resposta
+
+```typescript
+interface DistribuicaoResponse {
+  data?: {
+    tpAmb: string              // Ambiente (1=Prod, 2=Hom)
+    verAplic: string           // Versão da aplicação
+    cStat: string              // Código de status
+    xMotivo: string            // Descrição do status
+    dhResp: string             // Data/hora da resposta
+    ultNSU: string             // Último NSU disponível
+    maxNSU: string             // NSU máximo do ambiente
+    docZip?: Array<{           // Documentos encontrados
+      nsu: string              // NSU do documento
+      schema: string           // Schema do documento
+      xml: string              // XML original
+      json: any               // XML parseado como JSON
+    }>
+  }
+  error?: string              // Erro, se houver
+  status: number              // Status HTTP
+  reqXml: string             // XML da requisição
+  resXml: string             // XML da resposta
+}
+```
+
+### Tratamento de Status
+
+```typescript
+async function processarConsulta(distribuicao: NFeDistribuicao, ultNSU: string) {
+  const resultado = await distribuicao.consultaUltNSU({ ultNSU })
+  
+  switch (resultado.data?.cStat) {
+    case "137":
+      console.log("Nenhum documento encontrado. Aguardar 1 hora...")
+      // Implementar delay de 1 hora
+      break
+      
+    case "138":
+      console.log(`Documentos encontrados. Próximo NSU: ${resultado.data.ultNSU}`)
+      // Processar documentos e continuar sincronização
+      if (resultado.data.docZip) {
+        for (const doc of resultado.data.docZip) {
+          await processarDocumento(doc)
+        }
+        // Continuar com o próximo NSU
+        await processarConsulta(distribuicao, resultado.data.ultNSU)
+      }
+      break
+      
+    case "656":
+      console.error("CNPJ bloqueado por uso indevido. Aguardar 1 hora.")
+      // Implementar lógica de bloqueio
+      break
+      
+    default:
+      console.log(`Status: ${resultado.data?.cStat} - ${resultado.data?.xMotivo}`)
+  }
+}
+```
+
+## Sincronização Completa
+
+Exemplo de sincronização completa com controle de rate limiting:
+
+```typescript
+class SincronizadorNFe {
+  private ultimaConsulta137 = 0
+  private consultasChNFe = 0
+  private ultimaConsultaChNFe = 0
+
+  async sincronizarTodos(distribuicao: NFeDistribuicao, nsuInicial: string) {
+    let ultNSU = nsuInicial
+    
+    while (true) {
+      // Verificar se deve aguardar após último 137
+      if (this.ultimaConsulta137 && (Date.now() - this.ultimaConsulta137) < 3600000) {
+        const espera = 3600000 - (Date.now() - this.ultimaConsulta137)
+        console.log(`Aguardando ${espera}ms após último cStat 137`)
+        await this.delay(espera)
+      }
+      
+      const resultado = await distribuicao.consultaUltNSU({ ultNSU })
+      
+      if (resultado.data?.cStat === "137") {
+        this.ultimaConsulta137 = Date.now()
+        console.log("Sincronização completa. Aguardando 1 hora...")
+        break
+      }
+      
+      if (resultado.data?.cStat === "138" && resultado.data.docZip) {
+        // Processar documentos
+        for (const doc of resultado.data.docZip) {
+          await this.processarDocumento(doc)
+        }
+        
+        // Continuar com próximo NSU
+        ultNSU = resultado.data.ultNSU
+      } else {
+        console.error("Erro na consulta:", resultado.error || resultado.data?.xMotivo)
+        break
+      }
+    }
+  }
+
+  async consultarChaveComLimite(distribuicao: NFeDistribuicao, chNFe: string) {
+    const agora = Date.now()
+    
+    // Reset contador a cada hora
+    if (agora - this.ultimaConsultaChNFe > 3600000) {
+      this.consultasChNFe = 0
+    }
+    
+    // Verificar limite
+    if (this.consultasChNFe >= 20) {
+      const espera = 3600000 - (agora - this.ultimaConsultaChNFe)
+      throw new Error(`Limite de 20 consultas/hora excedido. Aguardar ${espera}ms`)
+    }
+    
+    const resultado = await distribuicao.consultaChNFe({ chNFe })
+    this.consultasChNFe++
+    this.ultimaConsultaChNFe = agora
+    
+    return resultado
+  }
+
+  private async processarDocumento(doc: any) {
+    console.log(`Processando documento NSU: ${doc.nsu}`)
+    // Implementar lógica de processamento
+  }
+
+  private delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms))
+  }
+}
+```
+
+## Tipos de Documentos Disponíveis
+
+Os documentos retornados podem ser:
+
+- **NFe completa**: XML completo da nota fiscal
+- **Resumo de NFe**: Informações resumidas (resNFe)
+- **Eventos**: Cancelamentos, correções, etc.
+- **Procuração**: Documentos de procuração eletrônica
+
+<Callout type="info">
+**Disponibilidade**: Documentos ficam disponíveis por até 90 dias após recepção no Ambiente Nacional.
+</Callout>
+
+## Próximos Passos
+
+- [📤 Eventos de Manifestação](/docs/eventos) - Como manifestar-se sobre NFe recebidas
+- [⚠️ Regras dos Web Services](/docs/regras-web-services) - **LEIA ANTES DE USAR EM PRODUÇÃO**
+- [🔧 Exemplos Práticos](/docs/exemplos) - Exemplos completos de uso

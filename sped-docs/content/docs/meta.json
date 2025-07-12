@@ -1,0 +1,13 @@
+{
+  "title": "SPED NFe",
+  "pages": [
+    "index",
+    "instalacao",
+    "configuracao",
+    "consulta-nfe",
+    "eventos",
+    "regras-web-services",
+    "exemplos",
+    "api-reference"
+  ]
+}

@@ -1,0 +1,381 @@
+---
+title: Referência da API
+description: Documentação completa da API da biblioteca @camu-ai/sped-nfe
+---
+
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+
+# Referência da API
+
+## Classes Principais
+
+### `NFeDistribuicao`
+
+Classe para controle de distribuição de documentos NFe.
+
+```typescript
+import { createNFeDistribuicao, type NFeDistribuicaoConfig } from "@camu-ai/sped-nfe"
+
+const distribuicao = createNFeDistribuicao(config)
+```
+
+#### Métodos
+
+##### `consultaUltNSU(inputs)`
+
+Consulta documentos fiscais a partir do último NSU conhecido.
+
+```typescript
+const resultado = await distribuicao.consultaUltNSU({
+  ultNSU: "000000000000001"
+})
+```
+
+**Parâmetros:**
+- `ultNSU` (string): Último NSU conhecido (15 dígitos)
+
+**Retorna:** `Promise<DistribuicaoResponse>`
+
+##### `consultaChNFe(inputs)`
+
+Consulta um documento fiscal específico pela chave de acesso.
+
+```typescript
+const resultado = await distribuicao.consultaChNFe({
+  chNFe: "35220314200166000187550010000000001123456789"
+})
+```
+
+**Parâmetros:**
+- `chNFe` (string): Chave de acesso da NFe (44 dígitos)
+
+**Retorna:** `Promise<DistribuicaoResponse>`
+
+##### `consultaNSU(inputs)`
+
+Consulta um documento fiscal específico por NSU.
+
+```typescript
+const resultado = await distribuicao.consultaNSU({
+  NSU: "000000000000045"
+})
+```
+
+**Parâmetros:**
+- `NSU` (string): NSU específico para consulta (15 dígitos)
+
+**Retorna:** `Promise<DistribuicaoResponse>`
+
+### `NFeRecepcaoEvento`
+
+Classe para controle de recepção de eventos NFe.
+
+```typescript
+import { createNFeRecepcaoEvento, type NFeRecepcaoEventoConfig } from "@camu-ai/sped-nfe"
+
+const recepcaoEvento = createNFeRecepcaoEvento(config)
+```
+
+#### Métodos
+
+##### `enviarEvento(inputs)`
+
+Envia eventos de manifestação do destinatário para NFe.
+
+```typescript
+const resultado = await recepcaoEvento.enviarEvento({
+  idLote: "1",
+  lote: [{
+    chNFe: "35220314200166000187550010000000001123456789",
+    tpEvento: TipoEvento.CONFIRMACAO_OPERACAO
+  }]
+})
+```
+
+**Parâmetros:**
+- `idLote` (string): Identificador único do lote (1-15 caracteres numéricos)
+- `lote` (`Array<EventoLote>`): Array de eventos, máximo 20 por lote
+
+**Retorna:** `Promise<EventoResponse>`
+
+## Interfaces e Tipos
+
+### Configurações
+
+#### `NFeDistribuicaoConfig`
+
+```typescript
+interface NFeDistribuicaoConfig {
+  cUFAutor: UFCode | string      // Código do estado
+  cnpj?: string                  // CNPJ (14 dígitos)
+  cpf?: string                   // CPF (11 dígitos)
+  tpAmb: Ambiente | '1' | '2'    // Ambiente
+  
+  // Opção 1: Certificado PFX
+  pfx?: Buffer                   // Arquivo PFX
+  passphrase?: string            // Senha do PFX
+  
+  // Opção 2: Certificado separado
+  cert?: string                  // Certificado
+  key?: string                   // Chave privada
+}
+```
+
+#### `NFeRecepcaoEventoConfig`
+
+```typescript
+interface NFeRecepcaoEventoConfig {
+  cnpj?: string                  // CNPJ (14 dígitos)
+  cpf?: string                   // CPF (11 dígitos)
+  tpAmb: Ambiente | '1' | '2'    // Ambiente
+  
+  // Opção 1: Certificado PFX
+  pfx?: Buffer                   // Arquivo PFX
+  passphrase?: string            // Senha do PFX
+  
+  // Opção 2: Certificado separado
+  cert?: string                  // Certificado
+  key?: string                   // Chave privada
+}
+```
+
+### Respostas
+
+#### `DistribuicaoResponse`
+
+```typescript
+interface DistribuicaoResponse {
+  data?: {
+    tpAmb: string              // Ambiente (1=Prod, 2=Hom)
+    verAplic: string           // Versão da aplicação
+    cStat: string              // Código de status
+    xMotivo: string            // Descrição do status
+    dhResp: string             // Data/hora da resposta
+    ultNSU: string             // Último NSU disponível
+    maxNSU: string             // NSU máximo do ambiente
+    docZip?: DocZip[]          // Documentos encontrados
+  }
+  error?: string               // Erro, se houver
+  status: number               // Status HTTP
+  reqXml: string              // XML da requisição
+  resXml: string              // XML da resposta
+}
+```
+
+#### `EventoResponse`
+
+```typescript
+interface EventoResponse {
+  data?: {
+    idLote: string             // ID do lote processado
+    tpAmb: string              // Ambiente
+    verAplic: string           // Versão da aplicação
+    cOrgao: string             // Código do órgão
+    cStat: string              // Status do lote
+    xMotivo: string            // Descrição do status
+    infEvento?: InfEvento[]    // Status individual dos eventos
+  }
+  error?: string               // Erro, se houver
+  status: number               // Status HTTP
+  reqXml: string              // XML da requisição
+  resXml: string              // XML da resposta
+}
+```
+
+#### `DocZip`
+
+```typescript
+interface DocZip {
+  nsu: string                  // NSU do documento
+  schema: string               // Schema do documento
+  xml: string                  // XML original
+  json: any                    // XML parseado como JSON
+}
+```
+
+#### `InfEvento`
+
+```typescript
+interface InfEvento {
+  tpAmb: string                // Ambiente
+  verAplic: string             // Versão da aplicação
+  cOrgao: string               // Código do órgão
+  cStat: string                // Status do evento
+  xMotivo: string              // Descrição do status
+  chNFe: string                // Chave da NFe
+  tpEvento: string             // Tipo do evento
+  xEvento: string              // Descrição do evento
+  nSeqEvento: string           // Número sequencial
+  CNPJDest?: string            // CNPJ do destinatário
+  dhRegEvento: string          // Data/hora do registro
+  nProt: string                // Número do protocolo
+}
+```
+
+### Eventos
+
+#### `EventoLote`
+
+```typescript
+interface EventoLote {
+  chNFe: string                // Chave de acesso da NFe
+  tpEvento: TipoEvento         // Tipo do evento
+  justificativa?: string       // Justificativa (obrigatória para 210240)
+}
+```
+
+## Enums
+
+### `UFCode`
+
+Códigos dos estados brasileiros:
+
+```typescript
+enum UFCode {
+  RO = '11',    // Rondônia
+  AC = '12',    // Acre
+  AM = '13',    // Amazonas
+  RR = '14',    // Roraima
+  PA = '15',    // Pará
+  AP = '16',    // Amapá
+  TO = '17',    // Tocantins
+  MA = '21',    // Maranhão
+  PI = '22',    // Piauí
+  CE = '23',    // Ceará
+  RN = '24',    // Rio Grande do Norte
+  PB = '25',    // Paraíba
+  PE = '26',    // Pernambuco
+  AL = '27',    // Alagoas
+  SE = '28',    // Sergipe
+  BA = '29',    // Bahia
+  MG = '31',    // Minas Gerais
+  ES = '32',    // Espírito Santo
+  RJ = '33',    // Rio de Janeiro
+  SP = '35',    // São Paulo
+  PR = '41',    // Paraná
+  SC = '42',    // Santa Catarina
+  RS = '43',    // Rio Grande do Sul
+  MS = '50',    // Mato Grosso do Sul
+  MT = '51',    // Mato Grosso
+  GO = '52',    // Goiás
+  DF = '53',    // Distrito Federal
+}
+```
+
+### `Ambiente`
+
+```typescript
+enum Ambiente {
+  PRODUCAO = '1',
+  HOMOLOGACAO = '2'
+}
+```
+
+### `TipoEvento`
+
+```typescript
+enum TipoEvento {
+  CONFIRMACAO_OPERACAO = 210200,      // Confirmação da Operação
+  CIENCIA_OPERACAO = 210210,          // Ciência da Emissão
+  DESCONHECIMENTO_OPERACAO = 210220,  // Desconhecimento da Operação
+  OPERACAO_NAO_REALIZADA = 210240     // Operação não Realizada
+}
+```
+
+## Funções de Factory
+
+### `createNFeDistribuicao(config)`
+
+Cria uma instância da classe NFeDistribuicao.
+
+```typescript
+function createNFeDistribuicao(config: NFeDistribuicaoConfig): NFeDistribuicao
+```
+
+### `createNFeRecepcaoEvento(config)`
+
+Cria uma instância da classe NFeRecepcaoEvento.
+
+```typescript
+function createNFeRecepcaoEvento(config: NFeRecepcaoEventoConfig): NFeRecepcaoEvento
+```
+
+## Códigos de Status Comuns
+
+### Distribuição DFe
+
+| Código | Descrição |
+|--------|-----------|
+| `137` | Nenhum documento localizado |
+| `138` | Documento(s) localizado(s) |
+| `217` | NFe inexistente para a chave informada |
+| `236` | Chave de Acesso com dígito verificador inválido |
+| `589` | NSU superior ao máximo disponível |
+| `632` | Solicitação fora de prazo (>90 dias) |
+| `640` | CNPJ/CPF sem permissão para consultar |
+| `641` | NFe indisponível para o emitente |
+| `653` | NFe Cancelada, indisponível |
+| `654` | NFe Denegada, indisponível |
+| `656` | Consumo Indevido (CNPJ bloqueado) |
+
+### Eventos de Manifestação
+
+| Código | Descrição |
+|--------|-----------|
+| `128` | Lote de evento processado |
+| `135` | Evento registrado e vinculado a NFe |
+| `573` | Duplicidade de evento |
+| `656` | Rejeição: Falha na comunicação |
+
+## Exemplos de Uso
+
+<Tabs items={['Distribuição', 'Eventos']}>
+<Tab value="Distribuição">
+
+```typescript
+import { createNFeDistribuicao, UFCode, Ambiente } from "@camu-ai/sped-nfe"
+
+const config = {
+  cUFAutor: UFCode.SP,
+  cnpj: "12345678901234",
+  tpAmb: Ambiente.HOMOLOGACAO,
+  pfx: certificadoBuffer,
+  passphrase: "senha"
+}
+
+const distribuicao = createNFeDistribuicao(config)
+
+// Consultar novos documentos
+const resultado = await distribuicao.consultaUltNSU({
+  ultNSU: "000000000000001"
+})
+
+if (resultado.data?.cStat === "138") {
+  console.log("Documentos encontrados:", resultado.data.docZip?.length)
+}
+```
+
+</Tab>
+<Tab value="Eventos">
+
+```typescript
+import { createNFeRecepcaoEvento, TipoEvento } from "@camu-ai/sped-nfe"
+
+const recepcaoEvento = createNFeRecepcaoEvento(config)
+
+// Enviar evento de confirmação
+const resultado = await recepcaoEvento.enviarEvento({
+  idLote: Date.now().toString(),
+  lote: [{
+    chNFe: "35220314200166000187550010000000001123456789",
+    tpEvento: TipoEvento.CONFIRMACAO_OPERACAO
+  }]
+})
+
+if (resultado.data?.cStat === "128") {
+  console.log("Lote processado com sucesso!")
+}
+```
+
+</Tab>
+</Tabs>

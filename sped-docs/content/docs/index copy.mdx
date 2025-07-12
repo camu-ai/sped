@@ -1,0 +1,93 @@
+---
+title: Introdução
+description: Uma biblioteca TypeScript para consumir os web services da Sefaz brasileira
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# @camu-ai/sped-nfe
+
+Uma biblioteca TypeScript para consumir os web services da Sefaz brasileira para distribuição de NFe (Nota Fiscal Eletrônica) e eventos de manifestação do destinatário.
+
+## Funcionalidades
+
+- 🔐 **Autenticação por certificado digital** (arquivos PFX ou cert/key)
+- 📦 **Consultas de distribuição de documentos NFe** (por ultNSU, NSU ou chNFe)
+- 📤 **Eventos de manifestação do destinatário** (confirmação, ciência, etc.)
+- 🏗️ **Arquitetura hexagonal** com separação clara de responsabilidades
+- ✅ **Suporte completo ao TypeScript** com type safety total
+- 🧪 **95%+ de cobertura de testes** garantindo confiabilidade
+- 🌐 **Suporte dual de build** (ESM/CJS) para máxima compatibilidade
+
+## Início Rápido
+
+<Steps>
+<Step>
+
+### Instalação
+
+```bash
+npm install @camu-ai/sped-nfe
+# ou
+yarn add @camu-ai/sped-nfe
+# ou
+pnpm add @camu-ai/sped-nfe
+```
+
+</Step>
+<Step>
+
+### Configuração Básica
+
+```typescript
+import { createNFeDistribuicao, UFCode, Ambiente } from "@camu-ai/sped-nfe"
+import { readFileSync } from "fs"
+
+// Carregue seu certificado
+const pfx = readFileSync("./certificado.pfx")
+
+const config = {
+  cUFAutor: UFCode.PR, // Paraná
+  cnpj: "12345678901234",
+  tpAmb: Ambiente.HOMOLOGACAO, // Homologação
+  pfx,
+  passphrase: "senha-do-certificado",
+}
+```
+
+</Step>
+<Step>
+
+### Primeira Consulta
+
+```typescript
+// Criar instância do controlador de distribuição
+const distribuicao = createNFeDistribuicao(config)
+
+// Consultar novos documentos
+const resultado = await distribuicao.consultaUltNSU({
+  ultNSU: "000000000000001",
+})
+
+console.log(resultado.data)
+```
+
+</Step>
+</Steps>
+
+<Callout type="warn">
+**Importante**: Antes de usar em produção, leia atentamente as [Regras dos Web Services](/docs/regras-web-services) para evitar bloqueios do seu CNPJ.
+</Callout>
+
+## Próximos Passos
+
+- [📚 Instalação](/docs/instalacao) - Guia detalhado de instalação
+- [⚙️ Configuração](/docs/configuracao) - Configuração de certificados e ambientes
+- [📦 Consulta NFe](/docs/consulta-nfe) - Como consultar documentos fiscais
+- [📤 Eventos](/docs/eventos) - Manifestação do destinatário
+- [⚠️ Regras dos Web Services](/docs/regras-web-services) - **LEIA ANTES DE USAR EM PRODUÇÃO**
+
+## Suporte
+
+Para problemas e solicitações de recursos, visite nosso [repositório no GitHub](https://github.com/camu-ai/sped).

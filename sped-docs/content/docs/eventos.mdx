@@ -1,0 +1,317 @@
+---
+title: Eventos de Manifestação
+description: Como enviar eventos de manifestação do destinatário para NFe
+---
+
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# Eventos de Manifestação do Destinatário
+
+A manifestação do destinatário permite que empresas se manifestem sobre NFe emitidas para seu CNPJ, confirmando ou rejeitando operações.
+
+## Criando uma Instância de Recepção de Eventos
+
+```typescript
+import { createNFeRecepcaoEvento, TipoEvento } from "@camu-ai/sped-nfe"
+
+const recepcaoEvento = createNFeRecepcaoEvento(config)
+```
+
+## Tipos de Eventos Disponíveis
+
+| Código | Tipo | Descrição | Justificativa |
+|--------|------|-----------|---------------|
+| `210200` | `TipoEvento.CONFIRMACAO_OPERACAO` | Confirmação da Operação | Não |
+| `210210` | `TipoEvento.CIENCIA_OPERACAO` | Ciência da Emissão | Não |
+| `210220` | `TipoEvento.DESCONHECIMENTO_OPERACAO` | Desconhecimento da Operação | Não |
+| `210240` | `TipoEvento.OPERACAO_NAO_REALIZADA` | Operação não Realizada | **Sim** |
+
+## Enviando Eventos
+
+### Estrutura Básica
+
+```typescript
+const resultado = await recepcaoEvento.enviarEvento({
+  idLote: "1", // Identificador único do lote
+  lote: [
+    {
+      chNFe: "35220314200166000187550010000000001123456789",
+      tpEvento: TipoEvento.CONFIRMACAO_OPERACAO,
+    },
+  ],
+})
+```
+
+### Confirmação da Operação (210200)
+
+Confirma que a operação foi realizada e a mercadoria foi recebida:
+
+```typescript
+await recepcaoEvento.enviarEvento({
+  idLote: Date.now().toString(), // ID único
+  lote: [{
+    chNFe: "35220314200166000187550010000000001123456789",
+    tpEvento: TipoEvento.CONFIRMACAO_OPERACAO,
+  }]
+})
+```
+
+### Ciência da Emissão (210210)
+
+Indica que o destinatário tem ciência da emissão da NFe:
+
+```typescript
+await recepcaoEvento.enviarEvento({
+  idLote: Date.now().toString(),
+  lote: [{
+    chNFe: "35220314200166000187550010000000001123456789",
+    tpEvento: TipoEvento.CIENCIA_OPERACAO,
+  }]
+})
+```
+
+### Desconhecimento da Operação (210220)
+
+Quando o destinatário não reconhece a operação:
+
+```typescript
+await recepcaoEvento.enviarEvento({
+  idLote: Date.now().toString(),
+  lote: [{
+    chNFe: "35220314200166000187550010000000001123456789",
+    tpEvento: TipoEvento.DESCONHECIMENTO_OPERACAO,
+  }]
+})
+```
+
+### Operação não Realizada (210240)
+
+<Callout type="warn">
+**Justificativa Obrigatória**: Este evento requer o campo `justificativa` preenchido.
+</Callout>
+
+```typescript
+await recepcaoEvento.enviarEvento({
+  idLote: Date.now().toString(),
+  lote: [{
+    chNFe: "35220314200166000187550010000000001123456789",
+    tpEvento: TipoEvento.OPERACAO_NAO_REALIZADA,
+    justificativa: "Mercadoria não foi entregue devido ao endereço incorreto"
+  }]
+})
+```
+
+## Processamento de Lotes
+
+### Múltiplos Eventos
+
+Você pode enviar até 20 eventos por lote:
+
+```typescript
+const loteEventos = [
+  {
+    chNFe: "35220314200166000187550010000000001123456789",
+    tpEvento: TipoEvento.CONFIRMACAO_OPERACAO,
+  },
+  {
+    chNFe: "35220314200166000187550010000000002123456789",
+    tpEvento: TipoEvento.CIENCIA_OPERACAO,
+  },
+  {
+    chNFe: "35220314200166000187550010000000003123456789",
+    tpEvento: TipoEvento.OPERACAO_NAO_REALIZADA,
+    justificativa: "Produto danificado durante o transporte"
+  }
+]
+
+await recepcaoEvento.enviarEvento({
+  idLote: Date.now().toString(),
+  lote: loteEventos
+})
+```
+
+<Callout type="info">
+**Limite por Lote**: Máximo 20 eventos por lote. Para mais eventos, crie lotes adicionais.
+</Callout>
+
+## Processamento de Respostas
+
+### Estrutura da Resposta
+
+```typescript
+interface EventoResponse {
+  data?: {
+    idLote: string             // ID do lote processado
+    tpAmb: string              // Ambiente
+    verAplic: string           // Versão da aplicação
+    cOrgao: string             // Código do órgão
+    cStat: string              // Status do lote
+    xMotivo: string            // Descrição do status
+    infEvento?: Array<{        // Status individual dos eventos
+      tpAmb: string
+      verAplic: string
+      cOrgao: string
+      cStat: string            // Status do evento individual
+      xMotivo: string          // Descrição do status
+      chNFe: string            // Chave da NFe
+      tpEvento: string         // Tipo do evento
+      xEvento: string          // Descrição do evento
+      nSeqEvento: string       // Número sequencial
+      CNPJDest?: string        // CNPJ do destinatário
+      dhRegEvento: string      // Data/hora do registro
+      nProt: string            // Número do protocolo
+    }>
+  }
+  error?: string
+  status: number
+  reqXml: string
+  resXml: string
+}
+```
+
+### Tratamento de Status
+
+```typescript
+async function processarEventos(recepcaoEvento: NFeRecepcaoEvento, lote: any[]) {
+  const resultado = await recepcaoEvento.enviarEvento({
+    idLote: Date.now().toString(),
+    lote
+  })
+
+  if (resultado.data) {
+    console.log(`Lote ${resultado.data.idLote} - Status: ${resultado.data.cStat}`)
+    
+    switch (resultado.data.cStat) {
+      case "128":
+        console.log("Lote processado com sucesso!")
+        
+        // Verificar status individual dos eventos
+        if (resultado.data.infEvento) {
+          for (const evento of resultado.data.infEvento) {
+            console.log(`NFe ${evento.chNFe}:`)
+            console.log(`  Status: ${evento.cStat} - ${evento.xMotivo}`)
+            
+            if (evento.cStat === "135") {
+              console.log(`  ✅ Evento registrado - Protocolo: ${evento.nProt}`)
+            } else if (evento.cStat === "573") {
+              console.log(`  ⚠️ Evento duplicado`)
+            } else {
+              console.log(`  ❌ Erro no evento: ${evento.xMotivo}`)
+            }
+          }
+        }
+        break
+        
+      case "656":
+        console.error("Rejeição: Falha na comunicação")
+        break
+        
+      default:
+        console.error(`Erro no lote: ${resultado.data.cStat} - ${resultado.data.xMotivo}`)
+    }
+  } else {
+    console.error("Erro na requisição:", resultado.error)
+  }
+}
+```
+
+## Regras e Limitações
+
+### Regras de Manifestação
+
+<Callout type="warn">
+**Regras Importantes**:
+- Cada NFe pode receber apenas **uma manifestação por tipo**
+- O **certificado** deve ser do próprio destinatário
+- **idLote** deve ser único para cada envio
+- **nSeqEvento** deve ser sequencial para cada chave de NFe
+</Callout>
+
+### Códigos de Status Comuns
+
+| Código | Descrição | Ação |
+|--------|-----------|------|
+| `128` | Lote de evento processado | Verificar status individual |
+| `135` | Evento registrado e vinculado a NFe | Sucesso ✅ |
+| `573` | Duplicidade de evento | Evento já registrado |
+| `656` | Rejeição: Falha na comunicação | Verificar conectividade |
+
+## Exemplo Completo
+
+```typescript
+import { 
+  createNFeRecepcaoEvento, 
+  TipoEvento,
+  type NFeRecepcaoEventoConfig 
+} from "@camu-ai/sped-nfe"
+
+class ManifestacaoService {
+  private recepcaoEvento: ReturnType<typeof createNFeRecepcaoEvento>
+
+  constructor(config: NFeRecepcaoEventoConfig) {
+    this.recepcaoEvento = createNFeRecepcaoEvento(config)
+  }
+
+  async confirmarOperacao(chNFe: string) {
+    return this.enviarEvento(chNFe, TipoEvento.CONFIRMACAO_OPERACAO)
+  }
+
+  async registrarCiencia(chNFe: string) {
+    return this.enviarEvento(chNFe, TipoEvento.CIENCIA_OPERACAO)
+  }
+
+  async desconhecerOperacao(chNFe: string) {
+    return this.enviarEvento(chNFe, TipoEvento.DESCONHECIMENTO_OPERACAO)
+  }
+
+  async rejeitarOperacao(chNFe: string, justificativa: string) {
+    return this.enviarEvento(
+      chNFe, 
+      TipoEvento.OPERACAO_NAO_REALIZADA, 
+      justificativa
+    )
+  }
+
+  private async enviarEvento(
+    chNFe: string, 
+    tpEvento: TipoEvento, 
+    justificativa?: string
+  ) {
+    const evento: any = { chNFe, tpEvento }
+    
+    if (justificativa) {
+      evento.justificativa = justificativa
+    }
+
+    const resultado = await this.recepcaoEvento.enviarEvento({
+      idLote: Date.now().toString(),
+      lote: [evento]
+    })
+
+    if (resultado.data?.infEvento?.[0]?.cStat === "135") {
+      console.log(`✅ Evento ${tpEvento} registrado para NFe ${chNFe}`)
+      return { sucesso: true, protocolo: resultado.data.infEvento[0].nProt }
+    } else {
+      const erro = resultado.data?.infEvento?.[0]?.xMotivo || resultado.error
+      console.error(`❌ Erro ao registrar evento: ${erro}`)
+      return { sucesso: false, erro }
+    }
+  }
+}
+
+// Uso do service
+const manifestacao = new ManifestacaoService(config)
+
+await manifestacao.confirmarOperacao("35220314200166000187550010000000001123456789")
+await manifestacao.rejeitarOperacao(
+  "35220314200166000187550010000000002123456789",
+  "Produto não confere com o pedido"
+)
+```
+
+## Próximos Passos
+
+- [⚠️ Regras dos Web Services](/docs/regras-web-services) - **LEIA ANTES DE USAR EM PRODUÇÃO**
+- [🔧 Exemplos Práticos](/docs/exemplos) - Exemplos completos de uso
+- [📚 Referência da API](/docs/api-reference) - Documentação completa da API
