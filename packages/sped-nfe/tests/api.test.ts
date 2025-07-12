@@ -1,28 +1,16 @@
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { describe, expect, it } from "vitest"
 import {
-  nfeConsultaChNFe,
-  nfeConsultaNSU,
-  nfeConsultaUltNSU,
-  nfeEnviarEvento,
+  NFeDistribuicao,
+  NFeRecepcaoEvento,
+  createNFeDistribuicao,
+  createNFeRecepcaoEvento,
 } from "../src/api"
-
-import { createNFeDistribuicao } from "../src/controllers/nfe-distribuicao-controller"
-import { createNFeRecepcaoEvento } from "../src/controllers/nfe-recepcao-evento-controller"
 import type {
   NFeDistribuicaoConfig,
   NFeRecepcaoEventoConfig,
 } from "../src/schema"
 
-// Mock the controllers
-vi.mock(`../src/controllers/nfe-distribuicao-controller`, () => ({
-  createNFeDistribuicao: vi.fn(),
-}))
-
-vi.mock(`../src/controllers/nfe-recepcao-evento-controller`, () => ({
-  createNFeRecepcaoEvento: vi.fn(),
-}))
-
-describe(`API`, () => {
+describe(`API Exports`, () => {
   const mockDistribuicaoConfig: NFeDistribuicaoConfig = {
     cUFAutor: `41`,
     cnpj: `12345678901234`,
@@ -38,109 +26,41 @@ describe(`API`, () => {
     passphrase: `test`,
   }
 
-  const mockDistribuicaoInstance = {
-    consultaUltNSU: vi.fn(),
-    consultaChNFe: vi.fn(),
-    consultaNSU: vi.fn(),
-  }
+  describe(`NFeDistribuicao`, () => {
+    it(`should export NFeDistribuicao class`, () => {
+      expect(NFeDistribuicao).toBeDefined()
+      expect(typeof NFeDistribuicao).toBe(`function`)
+    })
 
-  const mockRecepcaoInstance = {
-    enviarEvento: vi.fn(),
-  }
+    it(`should export createNFeDistribuicao factory function`, () => {
+      expect(createNFeDistribuicao).toBeDefined()
+      expect(typeof createNFeDistribuicao).toBe(`function`)
+    })
 
-  const mockResponse = {
-    data: {
-      tpAmb: `2`,
-      verAplic: `1.5.11`,
-      cStat: `138`,
-      xMotivo: `Sucesso`,
-      dhResp: `2022-06-21T10:48:14-03:00`,
-      ultNSU: `000000000000050`,
-      maxNSU: `000000000000212`,
-    },
-    status: 200,
-  }
-
-  beforeEach(() => {
-    vi.clearAllMocks()
-    vi.mocked(createNFeDistribuicao).mockReturnValue(
-      mockDistribuicaoInstance as any
-    )
-    vi.mocked(createNFeRecepcaoEvento).mockReturnValue(
-      mockRecepcaoInstance as any
-    )
-    mockDistribuicaoInstance.consultaUltNSU.mockResolvedValue(mockResponse)
-    mockDistribuicaoInstance.consultaChNFe.mockResolvedValue(mockResponse)
-    mockDistribuicaoInstance.consultaNSU.mockResolvedValue(mockResponse)
-    mockRecepcaoInstance.enviarEvento.mockResolvedValue(mockResponse)
-  })
-
-  describe(`nfeConsultaUltNSU`, () => {
-    it(`should create distribuicao instance and call consultaUltNSU`, async () => {
-      const result = await nfeConsultaUltNSU({
-        config: mockDistribuicaoConfig,
-        ultNSU: `000000000000001`,
-      })
-
-      expect(createNFeDistribuicao).toHaveBeenCalledWith(mockDistribuicaoConfig)
-      expect(mockDistribuicaoInstance.consultaUltNSU).toHaveBeenCalledWith({
-        ultNSU: `000000000000001`,
-      })
-      expect(result).toEqual(mockResponse)
+    it(`should create NFeDistribuicao instance`, () => {
+      const instance = createNFeDistribuicao(mockDistribuicaoConfig)
+      expect(instance).toBeInstanceOf(NFeDistribuicao)
+      expect(instance.consultaUltNSU).toBeDefined()
+      expect(instance.consultaChNFe).toBeDefined()
+      expect(instance.consultaNSU).toBeDefined()
     })
   })
 
-  describe(`nfeConsultaChNFe`, () => {
-    it(`should create distribuicao instance and call consultaChNFe`, async () => {
-      const result = await nfeConsultaChNFe({
-        config: mockDistribuicaoConfig,
-        chNFe: `41000000000000000000000000000000000000000039`,
-      })
-
-      expect(createNFeDistribuicao).toHaveBeenCalledWith(mockDistribuicaoConfig)
-      expect(mockDistribuicaoInstance.consultaChNFe).toHaveBeenCalledWith({
-        chNFe: `41000000000000000000000000000000000000000039`,
-      })
-      expect(result).toEqual(mockResponse)
+  describe(`NFeRecepcaoEvento`, () => {
+    it(`should export NFeRecepcaoEvento class`, () => {
+      expect(NFeRecepcaoEvento).toBeDefined()
+      expect(typeof NFeRecepcaoEvento).toBe(`function`)
     })
-  })
 
-  describe(`nfeConsultaNSU`, () => {
-    it(`should create distribuicao instance and call consultaNSU`, async () => {
-      const result = await nfeConsultaNSU({
-        config: mockDistribuicaoConfig,
-        NSU: `000000000000001`,
-      })
-
-      expect(createNFeDistribuicao).toHaveBeenCalledWith(mockDistribuicaoConfig)
-      expect(mockDistribuicaoInstance.consultaNSU).toHaveBeenCalledWith({
-        NSU: `000000000000001`,
-      })
-      expect(result).toEqual(mockResponse)
+    it(`should export createNFeRecepcaoEvento factory function`, () => {
+      expect(createNFeRecepcaoEvento).toBeDefined()
+      expect(typeof createNFeRecepcaoEvento).toBe(`function`)
     })
-  })
 
-  describe(`nfeEnviarEvento`, () => {
-    it(`should create recepcao instance and call enviarEvento`, async () => {
-      const lote = [
-        {
-          chNFe: `41000000000000000000000000000000000000000039`,
-          tpEvento: 210200 as const,
-        },
-      ]
-
-      const result = await nfeEnviarEvento({
-        config: mockRecepcaoConfig,
-        idLote: `1`,
-        lote,
-      })
-
-      expect(createNFeRecepcaoEvento).toHaveBeenCalledWith(mockRecepcaoConfig)
-      expect(mockRecepcaoInstance.enviarEvento).toHaveBeenCalledWith({
-        idLote: `1`,
-        lote,
-      })
-      expect(result).toEqual(mockResponse)
+    it(`should create NFeRecepcaoEvento instance`, () => {
+      const instance = createNFeRecepcaoEvento(mockRecepcaoConfig)
+      expect(instance).toBeInstanceOf(NFeRecepcaoEvento)
+      expect(instance.enviarEvento).toBeDefined()
     })
   })
 })

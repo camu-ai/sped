@@ -27,12 +27,7 @@ pnpm add @camu-ai/sped-nfe
 ## Início Rápido
 
 ```typescript
-import {
-  nfeConsultaUltNSU,
-  nfeEnviarEvento,
-  UFCode,
-  Ambiente,
-} from "@camu-ai/sped-nfe"
+import { createNFeDistribuicao, UFCode, Ambiente } from "@camu-ai/sped-nfe"
 import { readFileSync } from "fs"
 
 // Carregue seu certificado
@@ -46,9 +41,11 @@ const config = {
   passphrase: "senha-do-certificado",
 }
 
+// Criar instância do controlador de distribuição
+const distribuicao = createNFeDistribuicao(config)
+
 // Consultar novos documentos
-const resultado = await nfeConsultaUltNSU({
-  config,
+const resultado = await distribuicao.consultaUltNSU({
   ultNSU: "000000000000001",
 })
 
@@ -107,24 +104,30 @@ const config = {
 
 ## Referência da API
 
-### Serviços de Distribuição
+### Classes Controladoras
 
-#### `nfeConsultaUltNSU(inputs)`
+#### `NFeDistribuicao`
+
+Classe para controle de distribuição de documentos NFe.
+
+```typescript
+import { createNFeDistribuicao } from "@camu-ai/sped-nfe"
+
+const distribuicao = createNFeDistribuicao(config)
+```
+
+#### `consultaUltNSU(inputs)`
 
 Consulta documentos baseado no último NSU (Número Sequencial Único).
 
 ```typescript
-import { nfeConsultaUltNSU } from "@camu-ai/sped-nfe"
-
-const resultado = await nfeConsultaUltNSU({
-  config: configDistribuicao,
+const resultado = await distribuicao.consultaUltNSU({
   ultNSU: "000000000000001",
 })
 ```
 
 **Parâmetros:**
 
-- `config`: Objeto de configuração de distribuição
 - `ultNSU`: Último NSU conhecido (15 dígitos)
 
 **Exemplo de Retorno:**
@@ -152,53 +155,52 @@ const resultado = await nfeConsultaUltNSU({
 }
 ```
 
-#### `nfeConsultaNSU(inputs)`
+#### `consultaNSU(inputs)`
 
 Consulta um documento específico por NSU.
 
 ```typescript
-import { nfeConsultaNSU } from "@camu-ai/sped-nfe"
-
-const resultado = await nfeConsultaNSU({
-  config: configDistribuicao,
+const resultado = await distribuicao.consultaNSU({
   NSU: "000000000000045",
 })
 ```
 
 **Parâmetros:**
 
-- `config`: Objeto de configuração de distribuição
 - `NSU`: NSU específico para consulta (15 dígitos)
 
-#### `nfeConsultaChNFe(inputs)`
+#### `consultaChNFe(inputs)`
 
 Consulta um documento específico pela chave de acesso da NFe.
 
 ```typescript
-import { nfeConsultaChNFe } from "@camu-ai/sped-nfe"
-
-const resultado = await nfeConsultaChNFe({
-  config: configDistribuicao,
+const resultado = await distribuicao.consultaChNFe({
   chNFe: "41000000000000000000000000000000000000000039",
 })
 ```
 
 **Parâmetros:**
 
-- `config`: Objeto de configuração de distribuição
 - `chNFe`: Chave de acesso da NFe (44 dígitos)
 
-### Serviços de Eventos
+### `NFeRecepcaoEvento`
 
-#### `nfeEnviarEvento(inputs)`
+Classe para controle de recepção de eventos NFe.
+
+```typescript
+import { createNFeRecepcaoEvento } from "@camu-ai/sped-nfe"
+
+const recepcaoEvento = createNFeRecepcaoEvento(config)
+```
+
+#### `enviarEvento(inputs)`
 
 Envia eventos de manifestação do destinatário para documentos NFe.
 
 ```typescript
-import { nfeEnviarEvento, TipoEvento } from "@camu-ai/sped-nfe"
+import { TipoEvento } from "@camu-ai/sped-nfe"
 
-const resultado = await nfeEnviarEvento({
-  config: configEvento,
+const resultado = await recepcaoEvento.enviarEvento({
   idLote: "1",
   lote: [
     {
@@ -211,7 +213,6 @@ const resultado = await nfeEnviarEvento({
 
 **Parâmetros:**
 
-- `config`: Objeto de configuração de evento
 - `idLote`: Identificador do lote (string)
 - `lote`: Array de eventos para enviar
 
